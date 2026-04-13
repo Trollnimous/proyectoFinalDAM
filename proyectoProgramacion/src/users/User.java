@@ -16,7 +16,6 @@ public class User
 	private String username;
 	private String password;
 	private String profilePicURL;
-	private String description;
 	private char gender;
 	private LocalDate birthdate;
 	private Rol role;
@@ -32,6 +31,7 @@ public class User
 	private LocalTime lastReadingHour;
 	private LocalDate lastLoginDate;
 	
+	private int availableWritings;
 	private int availableReadings;
 	private int readPosts;
 	private int writtenPosts;
@@ -65,6 +65,8 @@ public class User
 	//Setters
 	
 	//Metodos
+	
+	//Devuelve true si la contraseña introducida por el usuario concuerda con guardada en el objeto
 	public boolean correctPassword(String password)
 	{
 		return Argon2Factory.create().verify(this.password, password.toCharArray());
