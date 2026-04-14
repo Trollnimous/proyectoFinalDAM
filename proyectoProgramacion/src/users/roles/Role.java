@@ -1,6 +1,6 @@
 package users.roles;
 
-public enum Rol
+public enum Role
 {
 	USER, ADMIN, GUEST;
 }
