@@ -67,9 +67,4 @@ public abstract class UserUtils
 		return (UserUtils.MIN_PASSWORD_LENGTH<=password.length()&&password.length()<=UserUtils.MAX_PASSWORD_LENGTH);
 	}
 	
-	//Devuelve true si la contraseña introducida por el usuario concuerda con guardada en el objeto
-	public static boolean correctPassword(String userHash, String password)
-	{
-		return Argon2Factory.create().verify(userHash, password.toCharArray());
-	}
 }

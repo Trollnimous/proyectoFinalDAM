@@ -18,7 +18,6 @@ public class TemporalDatabase
 {
 	private static final String usersFileDirectory = "databaseFiles/users.ser";
 	private Set<User> usersDB;
-	private Map<String, String> emailsAndPasswords;
 	
 	//Constructor
 	public TemporalDatabase()
@@ -26,7 +25,6 @@ public class TemporalDatabase
 		
 		this.usersDB = new HashSet<User>();
 		this.loadUsersFromDatabase();
-		this.emailsAndPasswords = this.createUserPasswordMap();
 	}
 	
 	
@@ -44,7 +42,14 @@ public class TemporalDatabase
 	//Devuelve true si el email existe
 	public boolean existsEmail(String email)
 	{
-		return this.emailsAndPasswords.containsKey(email);
+		for(User u : this.usersDB)
+		{
+			if(u.getEmail().equals(email))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	//Imprime todos los usuarios de la base de datos
@@ -56,24 +61,13 @@ public class TemporalDatabase
 		}
 	}
 	
-	//Crea un mapa con todos los eamil como clave y el hash de la contraseña como valor
-	private Map<String,String> createUserPasswordMap()
-	{
-		Map<String,String> mapDatabase = new HashMap<String,String>();
-		for(User u : this.usersDB)
-		{
-			mapDatabase.put(u.getEmail(), u.getPassword());
-		}
-		return mapDatabase;
-	}
 	
 	//Registra un usuario y devuelve si ha podido hacerlo
 	public boolean registerUser(User userToRegister)
 	{
 		if(this.usersDB.add(userToRegister))
 		{
-			this.emailsAndPasswords.put(userToRegister.getEmail(), userToRegister.getPassword());
-			TemporalDatabase.saveUsersToDatabase(usersFileDirectory, this.usersDB);
+			this.saveUsersToDatabase();
 			return true;
 		}
 		return false;
@@ -83,13 +77,18 @@ public class TemporalDatabase
 	private void loadUsersFromDatabase()
 	{
 		this.usersDB =  usersFromDatabase(usersFileDirectory);
+		if(this.usersDB == null)
+		{
+			System.err.println("[W]: Database is null, creating fresh database");
+			this.usersDB = new HashSet<User>();
+		}
 	}
 	
 	//Borra la base de datos de usuarios, luego deberiamos borrarlo, es para pruebas
-	public static void deleteUsersDB()
+	public void deleteUsersDB()
 	{
-		Set<User> empty = new HashSet<User>();
-		saveUsersToDatabase(usersFileDirectory, empty);
+		this.usersDB = new HashSet<User>();
+		this.saveUsersToDatabase();
 	}
 	
 	//Devuelve un set con todos los usuarios que estaban serializados de la direccion pasada
@@ -117,11 +116,11 @@ public class TemporalDatabase
 	}	
 		
 	//Guarda un set de usuarios en la base de datos
-	public static boolean saveUsersToDatabase(String directory, Set<User> users)
+	public boolean saveUsersToDatabase()
 	{
-		try(ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(directory)))
+		try(ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(TemporalDatabase.usersFileDirectory)))
 		{
-			oos.writeObject(users);
+			oos.writeObject(this.usersDB);
 			return true;
 		} catch (FileNotFoundException e)
 		{
@@ -149,11 +148,11 @@ public class TemporalDatabase
 	//Devuelve true si el usuario con ese email tiene esa contraseña
 	public boolean loginAccepted(String email, String password)
 	{
-		String passwordHash = this.emailsAndPasswords.get(email);
-		if(passwordHash == null)
+		User user = this.getUserFromMail(email);
+		if(user == null)
 		{
 			return false;
 		}
-		return UserUtils.correctPassword(passwordHash, password);
+		return user.correctPassword(password);
 	}
 }

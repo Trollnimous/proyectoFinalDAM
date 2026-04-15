@@ -2,6 +2,7 @@ package session;
 
 import java.util.Scanner;
 
+import inputs.InputUtils;
 import temporalConsoleDatabase.TemporalDatabase;
 import temporalConsoleMenus.SessionMenu;
 import users.User;
@@ -28,7 +29,8 @@ public class Session
 			{
 				//Session has no user attached
 				case 1:
-					this.attachUser();
+					sessionStatus = this.attachUser();
+					break;
 				//Exit
 				case 0:
 					SessionMenu.sayGoodbye();
@@ -40,7 +42,7 @@ public class Session
 		}
 	}
 	
-	private void attachUser()
+	private int attachUser()
 	{
 		int choice = -1;
 		SessionMenu.logUserMenu();
@@ -48,19 +50,35 @@ public class Session
 			SessionMenu.askForChoice();
 			choice = sc.nextInt();
 			sc.nextLine();
-			if(choice != 1 && choice != 2)
+			if(!(InputUtils.validChoice(choice, 1, 2, true)))
 			{
 				SessionMenu.choiceInvalidMessage();
 			}
-		}while(choice != 1 && choice != 2);
-		if(choice == 1)
+		}while(!InputUtils.validChoice(choice, 1, 2, true));
+		switch (choice)
 		{
-			this.userLogin();
+			case 1:
+				this.userLogin();
+				break;
+			case 2:
+				this.signUpUser();
+				break;
+			case 0:
+				this.endSession();
+				SessionMenu.sayGoodbye();
+				return 0;
+			default:
+				System.err.println("[E]: Session.attachUser() - Choice not recognized");
+				break;
+				
 		}
-		else
-		{
-			signUpUser();
-		}
+		return 1;
+	}
+	
+	//Ends current session safely
+	public void endSession()
+	{
+		
 	}
 	
 	//Makes user sign up
@@ -80,7 +98,7 @@ public class Session
 			email = sc.nextLine();
 			if(this.database.existsEmail(email))
 			{
-				System.out.println("Existe");
+				System.out.println("Debug: Existe");
 			}
 			SessionMenu.askForPassword();
 			password = sc.nextLine();

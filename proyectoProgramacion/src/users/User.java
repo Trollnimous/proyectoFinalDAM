@@ -9,18 +9,22 @@ import java.time.LocalTime;
 import de.mkammerer.argon2.Argon2Factory;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
+import users.gender.Gender;
 import users.roles.Role;
 
 public class User implements Serializable
 {
 	private static final long serialVersionUID = 1L;
+	private static final int MAX_SAVEABLE_WRITINGS = 3;
+	private static final int MAX_SAVEABLE_READINGS = 6;
+	
 	private UUID userID;
 	private String email;
 	private String username;
 	private String password;
 	private String profilePicURL;
-	private char gender;
-	private LocalDate birthdate;
+	private Gender gender;
+	private LocalDate birthDate;
 	private Role role;
 	
 	private boolean acceptsResponseEmails;
@@ -33,6 +37,7 @@ public class User implements Serializable
 	private LocalDate lastReadingDate;
 	private LocalTime lastReadingHour;
 	private LocalDate lastLoginDate;
+	private LocalTime lastLoginHour;
 	
 	private int availableWritings;
 	private int availableReadings;
@@ -41,29 +46,63 @@ public class User implements Serializable
 	
 	
 	//Constructores
-	public User(String email, String password)
+	public User(String email, String password, String username, Gender gender, LocalDate birthDate)
 	{
 		this.userID = UUID.randomUUID();
-		if(UserUtils.validEmail(email))
-		{
-			this.email = email;
-		}
-		else
-		{
-			this.email = "";
-		}
+		this.email = email;
 		this.password = User.createPasswordHash(password);
+		this.username = username;
+		this.profilePicURL = null;
+		this.gender = gender;
+		this.birthDate = birthDate;
+		this.role = Role.USER;
+		
+		this.acceptsResponseEmails = false;
+		this.acceptsMainteinanceEmails = false;
+		
+		this.accountCreationDate = LocalDate.now();
+		this.updateModificationDate();
+		this.updateLoginDate();
+		this.updateLastPostDate();
+		this.updateLastReadingDate();
+		
+		this.availableReadings = User.MAX_SAVEABLE_READINGS;
+		this.availableWritings = User.MAX_SAVEABLE_WRITINGS;
+		this.readPosts = 0;
+		this.writtenPosts = 0;
+	}
+	
+	public User(String email, String password, String username, Gender gender, LocalDate birthDate
+			,boolean acceptsResponseEmails, boolean acceptsMainteinanceEmails)
+	{
+		this.userID = UUID.randomUUID();
+		this.email = email;
+		this.password = User.createPasswordHash(password);
+		this.username = username;
+		this.profilePicURL = null;
+		this.gender = gender;
+		this.birthDate = birthDate;
+		this.role = Role.USER;
+		
+		this.acceptsResponseEmails = acceptsResponseEmails;
+		this.acceptsMainteinanceEmails = acceptsMainteinanceEmails;
+		
+		this.accountCreationDate = LocalDate.now();
+		this.updateModificationDate();
+		this.updateLoginDate();
+		this.updateLastPostDate();
+		this.updateLastReadingDate();
+		
+		this.availableReadings = User.MAX_SAVEABLE_READINGS;
+		this.availableWritings = User.MAX_SAVEABLE_WRITINGS;
+		this.readPosts = 0;
+		this.writtenPosts = 0;
 	}
 	
 	//Getters
 	public String getEmail()
 	{
 		return this.email;
-	}
-	
-	public String getPassword()
-	{
-		return this.password;
 	}
 	
 	public Role getRole()
@@ -77,6 +116,29 @@ public class User implements Serializable
 	
 	//Metodos
 	
+	public void updateLastPostDate()
+	{
+		this.lastPostDate = LocalDate.now();
+		this.lastPostHour = LocalTime.now();
+	}
+	
+	public void updateLastReadingDate()
+	{
+		this.lastReadingDate = LocalDate.now();
+		this.lastReadingHour = LocalTime.now();
+	}
+	
+	public void updateModificationDate()
+	{
+		this.accountLastModificationDate = LocalDate.now();
+	}
+	
+	public void updateLoginDate()
+	{
+		this.lastLoginDate = LocalDate.now();
+		this.lastLoginHour = LocalTime.now();
+	}
+	
 	private static String createPasswordHash(String password)
 	{
 		return Argon2Factory.create().hash(3, 65536, 1, password.toCharArray());
@@ -86,7 +148,7 @@ public class User implements Serializable
 	@Override
 	public String toString()
 	{
-		return String.format("Email: %s, ID: %s HashContraseña: %s", this.email, this.userID.toString(),this.password);
+		return String.format("Email: %s, ID: %s Username: %s", this.email, this.userID.toString(),this.username);
 	}
 	
 	//Método equals
@@ -115,4 +177,10 @@ public class User implements Serializable
 	{
 		return Objects.hash(this.userID,this.username);
 	}
+	
+	//Devuelve true si la contraseña introducida por el usuario concuerda con guardada en el objeto
+	public boolean correctPassword(String password)
+	{
+		return Argon2Factory.create().verify(this.password, password.toCharArray());
+	}	
 }

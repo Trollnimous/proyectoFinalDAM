@@ -63,7 +63,8 @@ public class SessionMenu
 	public static void logUserMenu()
 	{
 		System.out.println("[1] Log in");
-		System.out.println("[2] Sign up\n");
+		System.out.println("[2] Sign up");
+		System.out.println("[0] Exit program");
 	}
 	
 	public static void choiceInvalidMessage()

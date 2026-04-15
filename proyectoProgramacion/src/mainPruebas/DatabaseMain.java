@@ -1,7 +1,10 @@
 package mainPruebas;
 
+import java.time.LocalDate;
+
 import temporalConsoleDatabase.TemporalDatabase;
 import users.User;
+import users.gender.Gender;
 
 public class DatabaseMain
 {
