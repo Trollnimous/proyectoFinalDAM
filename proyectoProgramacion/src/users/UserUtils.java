@@ -8,6 +8,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Set;
 
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
 import de.mkammerer.argon2.Argon2Factory;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;

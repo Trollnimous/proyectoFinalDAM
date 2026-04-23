@@ -7,8 +7,6 @@ import java.util.UUID;
 import java.time.LocalTime;
 
 import de.mkammerer.argon2.Argon2Factory;
-import jakarta.mail.internet.AddressException;
-import jakarta.mail.internet.InternetAddress;
 import users.gender.Gender;
 import users.roles.Role;
 
@@ -24,7 +22,7 @@ public class User implements Serializable
 	private String password;
 	private String profilePicURL;
 	private Gender gender;
-	private LocalDate birthDate;
+	private LocalDate dateOfBirth;
 	private Role role;
 	
 	private boolean acceptsResponseEmails;
@@ -39,6 +37,7 @@ public class User implements Serializable
 	private LocalDate lastLoginDate;
 	private LocalTime lastLoginHour;
 	
+	private boolean hasNewResponses;
 	private int availableWritings;
 	private int availableReadings;
 	private int readPosts;
@@ -46,7 +45,7 @@ public class User implements Serializable
 	
 	
 	//Constructores
-	public User(String email, String password, String username, Gender gender, LocalDate birthDate)
+	public User(String email, String password, String username, Gender gender, LocalDate dateOfBirth)
 	{
 		this.userID = UUID.randomUUID();
 		this.email = email;
@@ -54,7 +53,7 @@ public class User implements Serializable
 		this.username = username;
 		this.profilePicURL = null;
 		this.gender = gender;
-		this.birthDate = birthDate;
+		this.dateOfBirth = dateOfBirth;
 		this.role = Role.USER;
 		
 		this.acceptsResponseEmails = false;
@@ -66,13 +65,14 @@ public class User implements Serializable
 		this.updateLastPostDate();
 		this.updateLastReadingDate();
 		
+		this.hasNewResponses = false;
 		this.availableReadings = User.MAX_SAVEABLE_READINGS;
 		this.availableWritings = User.MAX_SAVEABLE_WRITINGS;
 		this.readPosts = 0;
 		this.writtenPosts = 0;
 	}
 	
-	public User(String email, String password, String username, Gender gender, LocalDate birthDate
+	public User(String email, String password, String username, Gender gender, LocalDate dateOfBirth
 			,boolean acceptsResponseEmails, boolean acceptsMainteinanceEmails)
 	{
 		this.userID = UUID.randomUUID();
@@ -81,7 +81,7 @@ public class User implements Serializable
 		this.username = username;
 		this.profilePicURL = null;
 		this.gender = gender;
-		this.birthDate = birthDate;
+		this.dateOfBirth = dateOfBirth;
 		this.role = Role.USER;
 		
 		this.acceptsResponseEmails = acceptsResponseEmails;
@@ -93,6 +93,7 @@ public class User implements Serializable
 		this.updateLastPostDate();
 		this.updateLastReadingDate();
 		
+		this.hasNewResponses = false;
 		this.availableReadings = User.MAX_SAVEABLE_READINGS;
 		this.availableWritings = User.MAX_SAVEABLE_WRITINGS;
 		this.readPosts = 0;
@@ -100,9 +101,39 @@ public class User implements Serializable
 	}
 	
 	//Getters
+	public UUID getID()
+	{
+		return this.userID;
+	}
+	
 	public String getEmail()
 	{
 		return this.email;
+	}
+	
+	public String getUsername()
+	{
+		return this.username;
+	}
+	
+	public String getPasswordHash()
+	{
+		return this.password;
+	}
+	
+	public String getProfilePicURL()
+	{
+		return this.profilePicURL;
+	}
+	
+	public Gender getGender()
+	{
+		return this.gender;
+	}
+	
+	public LocalDate getDateOfBirth()
+	{
+		return this.dateOfBirth;
 	}
 	
 	public Role getRole()
@@ -110,12 +141,98 @@ public class User implements Serializable
 		return this.role;
 	}
 	
+	public UUID getUserID()
+	{
+		return this.userID;
+	}
+	
+	public boolean acceptsResponseEmails()
+	{
+		return this.acceptsResponseEmails;
+	}
+	
+	public boolean acceptsManeinanceEmails()
+	{
+		return this.acceptsMainteinanceEmails;
+	}
+	
+	public String getPassword()
+	{
+		return password;
+	}
+
+	public LocalDate getAccountCreationDate()
+	{
+		return accountCreationDate;
+	}
+
+	public LocalDate getAccountLastModificationDate()
+	{
+		return accountLastModificationDate;
+	}
+
+	public LocalDate getLastPostDate()
+	{
+		return lastPostDate;
+	}
+
+	public LocalTime getLastPostHour()
+	{
+		return lastPostHour;
+	}
+
+	public LocalDate getLastReadingDate()
+	{
+		return lastReadingDate;
+	}
+
+	public LocalTime getLastReadingHour()
+	{
+		return lastReadingHour;
+	}
+
+	public LocalDate getLastLoginDate()
+	{
+		return lastLoginDate;
+	}
+
+	public LocalTime getLastLoginHour()
+	{
+		return lastLoginHour;
+	}
+
+	public boolean isHasNewResponses()
+	{
+		return hasNewResponses;
+	}
+
+	public int getAvailableWritings()
+	{
+		return availableWritings;
+	}
+
+	public int getAvailableReadings()
+	{
+		return availableReadings;
+	}
+
+	public int getReadPosts()
+	{
+		return readPosts;
+	}
+
+	public int getWrittenPosts()
+	{
+		return writtenPosts;
+	}
 	//Setters
 	
 	
 	
 	//Metodos
 	
+	
+
 	public void updateLastPostDate()
 	{
 		this.lastPostDate = LocalDate.now();
