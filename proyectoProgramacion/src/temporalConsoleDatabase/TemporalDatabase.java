@@ -42,23 +42,25 @@ public class TemporalDatabase
 	//Devuelve true si el email existe
 	public boolean existsEmail(String email)
 	{
-		for(User u : this.usersDB)
+		/*for(User u : this.usersDB)
 		{
 			if(u.getEmail().equals(email))
 			{
 				return true;
 			}
 		}
-		return false;
+		return false;*/
+		return this.usersDB.stream().anyMatch( u -> u.getEmail().equals(email));
 	}
 	
 	//Imprime todos los usuarios de la base de datos
 	public void printUsers()
 	{
-		for(User u : this.usersDB)
+		/*for(User u : this.usersDB)
 		{
 			System.out.println(u);
-		}
+		}*/
+		this.usersDB.stream().forEach(  u -> System.out.println(u)  );
 	}
 	
 	
@@ -135,14 +137,15 @@ public class TemporalDatabase
 	//Devuelve un usuario por su email
 	public User getUserFromMail(String email)
 	{
-		for(User u : this.usersDB)
+		/*for(User u : this.usersDB)
 		{
 			if(u.getEmail().equals(email))
 			{
 				return u;
 			}
 		}
-		return null;
+		return null;*/
+		return this.usersDB.stream().filter(u -> u.getEmail().equals(email)).findFirst().orElse(null);
 	}
 	
 	//Devuelve true si el usuario con ese email tiene esa contraseña
