@@ -1,6 +1,10 @@
 package users;
 
 import java.io.Serializable;
+import java.sql.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Time;
 import java.time.LocalDate;
 import java.util.Objects;
 import java.util.UUID;
@@ -9,6 +13,9 @@ import java.time.LocalTime;
 import de.mkammerer.argon2.Argon2Factory;
 import users.gender.Gender;
 import users.roles.Role;
+
+import java.sql.Time;
+import java.sql.Date;
 
 public class User implements Serializable
 {
@@ -26,7 +33,7 @@ public class User implements Serializable
 	private Role role;
 	
 	private boolean acceptsResponseEmails;
-	private boolean acceptsMainteinanceEmails;
+	private boolean acceptsMaintenanceEmails;
 	
 	private LocalDate accountCreationDate;
 	private LocalDate accountLastModificationDate;
@@ -45,6 +52,33 @@ public class User implements Serializable
 	
 	
 	//Constructores
+	public User()
+	{
+		this.userID = null;
+		this.email = null;
+		this.password = null;
+		this.username = null;
+		this.profilePicURL = null;
+		this.gender = null;
+		this.dateOfBirth = null;
+		this.role = null;
+		
+		this.acceptsResponseEmails = false;
+		this.acceptsMaintenanceEmails = false;
+		
+		this.accountCreationDate = LocalDate.now();
+		this.updateModificationDate();
+		this.updateLoginDate();
+		this.updateLastPostDate();
+		this.updateLastReadingDate();
+		
+		this.hasNewResponses = false;
+		this.availableReadings = User.MAX_SAVEABLE_READINGS;
+		this.availableWritings = User.MAX_SAVEABLE_WRITINGS;
+		this.readPosts = 0;
+		this.writtenPosts = 0;
+	}
+	
 	public User(String email, String password, String username, Gender gender, LocalDate dateOfBirth)
 	{
 		this.userID = UUID.randomUUID();
@@ -57,7 +91,7 @@ public class User implements Serializable
 		this.role = Role.USER;
 		
 		this.acceptsResponseEmails = false;
-		this.acceptsMainteinanceEmails = false;
+		this.acceptsMaintenanceEmails = false;
 		
 		this.accountCreationDate = LocalDate.now();
 		this.updateModificationDate();
@@ -85,7 +119,7 @@ public class User implements Serializable
 		this.role = Role.USER;
 		
 		this.acceptsResponseEmails = acceptsResponseEmails;
-		this.acceptsMainteinanceEmails = acceptsMainteinanceEmails;
+		this.acceptsMaintenanceEmails = acceptsMainteinanceEmails;
 		
 		this.accountCreationDate = LocalDate.now();
 		this.updateModificationDate();
@@ -153,7 +187,7 @@ public class User implements Serializable
 	
 	public boolean acceptsManeinanceEmails()
 	{
-		return this.acceptsMainteinanceEmails;
+		return this.acceptsMaintenanceEmails;
 	}
 	
 	public String getPassword()
@@ -231,7 +265,56 @@ public class User implements Serializable
 	
 	//Metodos
 	
-	
+	public static User buildUserFromResultSet(ResultSet rs)
+	{
+		User userToReturn = new User();
+
+        try {
+        	// 4. Mapeamos de SQL a Java (nombre de columna en la BD)
+            userToReturn.userID = UUID.randomUUID();
+            userToReturn.email = rs.getString("email");
+            userToReturn.username = rs.getString("username");
+            userToReturn.password = rs.getString("password_hash");
+            userToReturn.profilePicURL = rs.getString("profile_pic_url");
+            userToReturn.gender = Gender.getGender(rs.getString("gender"));
+            java.sql.Date dateOfBirth = rs.getDate("date_of_birth");
+            userToReturn.dateOfBirth = dateOfBirth.toLocalDate();
+            userToReturn.role = Role.getRole(rs.getString("user_role"));
+
+            userToReturn.acceptsResponseEmails = rs.getBoolean("accepts_response_emails");
+            userToReturn.acceptsMaintenanceEmails = rs.getBoolean("accepts_maintenance_emails");
+            
+            java.sql.Date accCreationDate = rs.getDate("account_creation_date");
+            userToReturn.dateOfBirth = accCreationDate.toLocalDate();
+            java.sql.Date accLastModDate = rs.getDate("account_last_modification_date");
+            userToReturn.dateOfBirth = accLastModDate.toLocalDate();
+            java.sql.Date lastPostDate = rs.getDate("last_post_date");
+            userToReturn.dateOfBirth = lastPostDate.toLocalDate();
+            java.sql.Time lastPostHour = rs.getTime("last_post_hour");
+            userToReturn.lastPostHour = lastPostHour.toLocalTime();
+            java.sql.Date lastReadingDate = rs.getDate("last_reading_date");
+            userToReturn.dateOfBirth = lastReadingDate.toLocalDate();
+            java.sql.Time lastReadingHour = rs.getTime("last_reading_hour");
+            userToReturn.lastPostHour = lastReadingHour.toLocalTime();
+            java.sql.Date lastLoginDate = rs.getDate("last_login_date");
+            userToReturn.dateOfBirth = lastLoginDate.toLocalDate();
+            java.sql.Time lastLoginHour = rs.getTime("last_login_hour");
+            userToReturn.lastPostHour = lastLoginHour.toLocalTime();
+            
+            userToReturn.hasNewResponses = rs.getBoolean("has_new_responses");
+            userToReturn.availableWritings = rs.getInt("available_writings");
+            userToReturn.availableReadings = rs.getInt("available_readings");
+            userToReturn.readPosts = rs.getInt("read_posts");
+            userToReturn.writtenPosts = rs.getInt("written_posts");
+
+            
+        }catch(SQLException e)
+        {
+        	System.out.println("Error a la hora de reconstruir el usuario: "+ e.getMessage());
+        }
+        
+        return userToReturn;
+	}
 
 	public void updateLastPostDate()
 	{
@@ -261,13 +344,6 @@ public class User implements Serializable
 		return Argon2Factory.create().hash(3, 65536, 1, password.toCharArray());
 	}
 	
-	//Impresion por consola
-	@Override
-	public String toString()
-	{
-		return String.format("Email: %s, ID: %s Username: %s", this.email, this.userID.toString(),this.username);
-	}
-	
 	//Método equals
 	@Override
 	public boolean equals(Object o)
@@ -286,6 +362,26 @@ public class User implements Serializable
 		}
 		User u = (User)o;
 		return ((this.userID.equals(u.userID))&&(this.username.equals(u.username)));
+	}
+	
+	@Override
+	public String toString()
+	{
+		return String.format("User: %s. Email: %s. Gender: %s. BirthDay: %s. Role: %s", this.username, this.email, this.gender.toString(), this.dateOfBirth.toString(), this.role.toString());
+	}
+
+	public String detailedToString()
+	{
+		return "User [userID=" + userID + ", email=" + email + ", username=" + username + ", password=" + password
+				+ ", profilePicURL=" + profilePicURL + ", gender=" + gender + ", dateOfBirth=" + dateOfBirth + ", role="
+				+ role + ", acceptsResponseEmails=" + acceptsResponseEmails + ", acceptsMaintenanceEmails="
+				+ acceptsMaintenanceEmails + ", accountCreationDate=" + accountCreationDate
+				+ ", accountLastModificationDate=" + accountLastModificationDate + ", lastPostDate=" + lastPostDate
+				+ ", lastPostHour=" + lastPostHour + ", lastReadingDate=" + lastReadingDate + ", lastReadingHour="
+				+ lastReadingHour + ", lastLoginDate=" + lastLoginDate + ", lastLoginHour=" + lastLoginHour
+				+ ", hasNewResponses=" + hasNewResponses + ", availableWritings=" + availableWritings
+				+ ", availableReadings=" + availableReadings + ", readPosts=" + readPosts + ", writtenPosts="
+				+ writtenPosts + "]";
 	}
 	
 	//Hashchode

@@ -15,7 +15,7 @@ public class SessionMenu
 		switch(roleSwitch)
 		{
 			case USER:
-				break;
+				return 2;
 			case ADMIN:
 				break;
 			case GUEST:
@@ -25,6 +25,16 @@ public class SessionMenu
 				return -1;
 		}
 		return -1;
+	}
+	
+	public static void printUserMenu()
+	{
+		System.out.println("[1] Post");
+		System.out.println("[2] Read");
+		System.out.println("[3] Read and respond");
+		System.out.println("[4] See your posts");
+		System.out.println("[5] See respnses to your posts");
+		System.out.println("[0] Exit\n");
 	}
 	
 	private static int printStartupMenu()
@@ -37,7 +47,7 @@ public class SessionMenu
 	
 	public static void sayGoodbye()
 	{
-		System.out.println("Have a nice day!");
+		System.out.println("\nHave a nice day!");
 	}
 	
 	public static void askForEmail()
@@ -53,6 +63,11 @@ public class SessionMenu
 	public static void loginFailed()
 	{
 		System.out.println("[E]: Incorrect email or password");
+	}
+	
+	public static void loginCompleted()
+	{
+		System.out.println("\nLogin Completed!\n");
 	}
 	
 	public static void askForChoice()
