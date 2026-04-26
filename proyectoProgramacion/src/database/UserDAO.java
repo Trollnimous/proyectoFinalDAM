@@ -5,6 +5,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -64,9 +66,8 @@ public class UserDAO implements DAO<User>
 	@Override
 	public boolean update(User object)
 	{
-		// TODO Auto-generated method stub
-		boolean valid = false;
-		return valid;
+		//Esto no lo hacemos porque no sabemos hacerlo bien para varias cosas
+		return false;
 	}
 
 	@Override
@@ -145,10 +146,10 @@ public class UserDAO implements DAO<User>
 
 	            }
 	        } catch (SQLException e) {
-	            System.out.println("❌ Error al insertar: " + e.getMessage());
+	            System.out.println("❌ Error al obtener lista: " + e.getMessage());
 	        } catch (NullPointerException e)
 	        {
-	        	System.out.println("❌ Error al insertar: " + e.getMessage());
+	        	System.out.println("❌ Error al obtener lista: " + e.getMessage());
 	        }
 		
 		return listToReturn;
@@ -168,7 +169,7 @@ public class UserDAO implements DAO<User>
             {
                 if (rs.next()) 
                 {
-                	System.out.println("✅ Usuario encontrado correctamente en la BD.");
+                	//System.out.println("✅ Usuario encontrado correctamente en la BD.");
                     userToReturn = User.buildUserFromResultSet(rs);
                 }            
                 else
@@ -210,7 +211,6 @@ public class UserDAO implements DAO<User>
 	}
 	
 	public boolean existsUsername(String username) {
-	    // Usamos SELECT 1 y EXISTS para que sea lo más rápido posible
 	    String sql = "SELECT EXISTS(SELECT 1 FROM users WHERE username = ?) AS is_present";
 
 	    try (Connection conn = DatabaseConnection.getConexion();
@@ -229,6 +229,45 @@ public class UserDAO implements DAO<User>
 	        }
 	    } catch (SQLException e) {
 	        System.out.println("❌ Error al comprobar existencia: " + e.getMessage());
+	    }
+	    return false;
+	}
+	
+	public boolean updateLastLoginDate(UUID userToUpdateID) {
+	    String sql = "UPDATE users SET last_login_date = ?, last_login_hour = ? where user_id = ?";
+
+	    try (Connection conn = DatabaseConnection.getConexion();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) 
+	    {
+	        
+	        pstmt.setDate(1, Date.valueOf(LocalDate.now()));
+	        pstmt.setTime(2, Time.valueOf(LocalTime.now()));
+	        pstmt.setString(3, userToUpdateID.toString());
+	        
+	        int affectedRows = pstmt.executeUpdate();
+	        
+	        return affectedRows > 0;
+	    } catch (SQLException e) {
+	        System.out.println("❌ Error al actualizar usuarios: " + e.getMessage());
+	    }
+	    return false;
+	}
+	
+	public boolean updatePassword(UUID userToUpdateID, String passwordHashUpdated) {
+	    String sql = "UPDATE users SET password_hash = ? where user_id = ?";
+
+	    try (Connection conn = DatabaseConnection.getConexion();
+	         PreparedStatement pstmt = conn.prepareStatement(sql)) 
+	    {
+	        
+	        pstmt.setString(1, passwordHashUpdated);
+	        pstmt.setString(2, userToUpdateID.toString());
+	        
+	        int affectedRows = pstmt.executeUpdate();
+	        
+	        return affectedRows > 0;
+	    } catch (SQLException e) {
+	        System.out.println("❌ Error al actualizar contraseña: " + e.getMessage());
 	    }
 	    return false;
 	}

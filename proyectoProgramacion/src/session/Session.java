@@ -39,6 +39,10 @@ public class Session
 				case 2:
 					sessionStatus = userSession();
 					break;
+				//Admin menu
+				case 3:
+					sessionStatus = adminSession();
+					break;
 				//Exit
 				case 0:
 					break;
@@ -69,6 +73,47 @@ public class Session
 				return 0;
 		}
 		return -1;
+	}
+	
+	private int adminSession()
+	{
+		SessionMenu.printAdminMenu();
+		int choice = -1;
+		do {
+			choice = InputUtils.askForNumber(sc);
+			sc.nextLine();
+			if(!InputUtils.validChoice(choice, 1, 1, true))
+			{
+				System.out.println("[W]: Choice not recognised");
+			}
+		}while(!InputUtils.validChoice(choice, 1, 1, true));
+		switch(choice)
+		{
+			case 1:
+				this.changeUserPassword();
+				return 1;
+			case 0:
+				return 0;
+		}
+		return -1;
+	}
+	
+	private void changeUserPassword()
+	{
+		String currentPassword;
+		do {
+			System.out.print("Enter current password: ");
+			currentPassword = sc.nextLine();
+		}while(!this.sessionUser.correctPassword(currentPassword));
+		currentPassword = null;
+		String newPassword;
+		System.out.print("Enter new password: ");
+		do {
+			newPassword = sc.nextLine();
+		}while(!UserUtils.validPassword(newPassword));
+		this.sessionUser.setPassword(newPassword);
+		this.uDAO.updatePassword(this.sessionUser.getID(), User.createPasswordHash(newPassword));
+		newPassword = null;
 	}
 	
 	private int attachUser()
@@ -200,9 +245,11 @@ public class Session
 			SessionMenu.askForPassword();
 			password = sc.nextLine();
 			userToLogin = this.uDAO.searchByEmail(email);
-			if(userToLogin.correctPassword(password))
+			if(this.uDAO.existsEmail(email) && userToLogin.correctPassword(password))
 			{
 				this.sessionUser = userToLogin;
+				this.uDAO.updateLastLoginDate(this.sessionUser.getID());
+				this.updateLastLoginFromUser();
 				loginCompleted = true;
 				SessionMenu.loginCompleted();
 			}
@@ -213,4 +260,12 @@ public class Session
 		}while(!loginCompleted);
 	}
 	
+	public void updateLastLoginFromUser()
+	{
+		if(this.sessionUser == null)
+		{
+			return;
+		}
+		this.sessionUser.updateLoginDate();
+	}
 }

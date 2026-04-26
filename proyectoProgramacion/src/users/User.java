@@ -260,7 +260,10 @@ public class User implements Serializable
 		return writtenPosts;
 	}
 	//Setters
-	
+	public void setPassword(String password)
+	{
+		this.password = createPasswordHash(password);
+	}
 	
 	
 	//Metodos
@@ -271,7 +274,7 @@ public class User implements Serializable
 
         try {
         	// 4. Mapeamos de SQL a Java (nombre de columna en la BD)
-            userToReturn.userID = UUID.randomUUID();
+            userToReturn.userID = UUID.fromString(rs.getString("user_id"));
             userToReturn.email = rs.getString("email");
             userToReturn.username = rs.getString("username");
             userToReturn.password = rs.getString("password_hash");
@@ -339,7 +342,7 @@ public class User implements Serializable
 		this.lastLoginHour = LocalTime.now();
 	}
 	
-	private static String createPasswordHash(String password)
+	public static String createPasswordHash(String password)
 	{
 		return Argon2Factory.create().hash(3, 65536, 1, password.toCharArray());
 	}

@@ -14,11 +14,11 @@ public class SessionMenu
 		Role roleSwitch = userMenu.getRole();
 		switch(roleSwitch)
 		{
-			case USER:
+			case Role.USER:
 				return 2;
-			case ADMIN:
-				break;
-			case GUEST:
+			case Role.ADMIN:
+				return 3;
+			case Role.GUEST:
 				break;
 			default:
 				System.out.println("[E]: Could not process user role");
@@ -34,6 +34,13 @@ public class SessionMenu
 		System.out.println("[3] Read and respond");
 		System.out.println("[4] See your posts");
 		System.out.println("[5] See respnses to your posts");
+		System.out.println("[6] Change password");
+		System.out.println("[0] Exit\n");
+	}
+	
+	public static void printAdminMenu()
+	{
+		System.out.println("[1] Change password");
 		System.out.println("[0] Exit\n");
 	}
 	
