@@ -1,24 +1,35 @@
 package session;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
+import database.EmptyPostPoolException;
+import database.PostDAO;
+import database.PostPoolDAO;
 import database.UserDAO;
 import inputs.InputUtils;
+import post.Post;
 import temporalConsoleDatabase.TemporalDatabase;
 import temporalConsoleMenus.SessionMenu;
 import users.User;
 import users.UserUtils;
 import users.gender.Gender;
+import users.roles.Role;
 
 public class Session
 {
 	private final Scanner sc = new Scanner(System.in);
 	private User sessionUser;
 	private UserDAO uDAO;
+	private PostDAO pDAO;
+	private PostPoolDAO ppDAO;
 	
 	public Session()
 	{
+		this.ppDAO = new PostPoolDAO();
+		this.pDAO = new PostDAO();
 		this.uDAO = new UserDAO();
 		this.sessionUser = null;
 	}
@@ -56,46 +67,187 @@ public class Session
 	
 	private int userSession()
 	{
+		SessionMenu.printUserName(this.sessionUser.getUsername());
 		SessionMenu.printUserMenu();
 		int choice = -1;
 		do {
+			SessionMenu.askForChoice();
 			choice = InputUtils.askForNumber(sc);
 			sc.nextLine();
-			if(!InputUtils.validChoice(choice, 1, 5, true))
+			if(!InputUtils.validChoice(choice, 1, 7, true))
 			{
 				System.out.println("[W]: Choice not recognised");
 			}
-		}while(!InputUtils.validChoice(choice, 1, 5, true));
+		}while(!InputUtils.validChoice(choice, 1, 7, true));
 		switch(choice)
 		{
 			//TODO: hacer casos
+			case 1:
+				this.createPost();
+				return 1;
+			case 2:
+				this.readPost();
+				return 1;
+			case 3:
+				this.readPostAndRespond();
+				return 1;
+			case 4:
+				this.seeUserPosts();
+				return 1;
+			case 6:
+				this.changeUserPassword();
+				return 1;
+			case 7:
+				if(this.deleteUser(this.sessionUser))
+				{
+					return 0;
+				}
+				return 1;
 			case 0:
 				return 0;
 		}
 		return -1;
 	}
 	
+	private int readPostAndRespond()
+	{
+		try
+		{
+			System.out.println(this.pDAO.searchById(this.ppDAO.getPostToRead()));
+			System.out.println();
+		} catch (EmptyPostPoolException e)
+		{
+			System.out.println("\n[E]: The post pool is empty\n");
+		}
+		
+		return 1;
+	}
+	
+	private int readPost()
+	{
+		try
+		{
+			System.out.println(this.pDAO.searchById(this.ppDAO.getPostToRead()));
+			System.out.println();
+		} catch (EmptyPostPoolException e)
+		{
+			System.out.println("\n[E]: The post pool is empty\n");
+		}
+		
+		return 1;
+	}
+	
 	private int adminSession()
 	{
+		SessionMenu.printUserName(this.sessionUser.getUsername());
 		SessionMenu.printAdminMenu();
 		int choice = -1;
 		do {
+			SessionMenu.askForChoice();
 			choice = InputUtils.askForNumber(sc);
 			sc.nextLine();
-			if(!InputUtils.validChoice(choice, 1, 1, true))
+			if(!InputUtils.validChoice(choice, 1, 2, true))
 			{
 				System.out.println("[W]: Choice not recognised");
 			}
-		}while(!InputUtils.validChoice(choice, 1, 1, true));
+		}while(!InputUtils.validChoice(choice, 1, 2, true));
 		switch(choice)
 		{
 			case 1:
 				this.changeUserPassword();
 				return 1;
+			case 2:
+				this.deleteUser(this.sessionUser);
+				return 1;
 			case 0:
 				return 0;
 		}
 		return -1;
+	}
+	
+	private boolean createPost()
+	{
+		String title = "";
+		String content = "";
+		int maxReadings = -1;
+		int wantsResponseChoice = -1;
+		boolean wantsResponse;
+		System.out.println("Introduce the post title:");
+		SessionMenu.askForChoice();
+		title = sc.nextLine();
+		System.out.println("Introduce the post content:");
+		SessionMenu.askForChoice();
+		content = sc.nextLine();
+		do {
+			System.out.print("Introduce the max readings of the post: ");
+			SessionMenu.askForChoice();
+			maxReadings = InputUtils.askForNumber(sc);
+			sc.nextLine();
+			if(!InputUtils.validChoice(maxReadings, 1, 20, false))
+			{
+				System.out.println("[E]: Enter a valid value");
+			}
+		}while(!InputUtils.validChoice(maxReadings, 1, 20, false));
+		System.out.println("Do you want a response to your post?");
+		System.out.println("[1] Yes");
+		System.out.println("[0] No\n");
+		SessionMenu.askForChoice();
+		wantsResponseChoice = InputUtils.askForNumber(sc);
+		wantsResponse = wantsResponseChoice == 1 ? true : false;
+		Post postToInsert = new Post(this.sessionUser.getUserID(),title, content, maxReadings, this.sessionUser.getEmail(),wantsResponse);
+		return (this.pDAO.insert(postToInsert) && this.ppDAO.insert(postToInsert));
+	}
+	
+	private void seeUserPosts()
+	{
+		int choice = -1;
+		List<Post> usersPosts = this.pDAO.listAll(this.sessionUser.getID());
+		for(int i = 0; i < usersPosts.size(); i++)
+		{
+			System.out.println(String.format("[%d] %s", i+1,usersPosts.get(i).getTitle()));
+		}
+		System.out.println("[0] Return\n");
+		SessionMenu.askForChoice();
+		choice = InputUtils.askForNumber(sc);
+		sc.nextLine();
+		if(choice == 0)
+		{
+			return;
+		}
+		if(InputUtils.validChoice(choice, 0, usersPosts.size(), false))
+		{
+			System.out.println(usersPosts.get(choice-1));
+			System.out.println();
+		}
+		return;
+	}
+	
+	private boolean deleteUser(User sessionUser)
+	{
+		
+		if(sessionUser.getRole() == Role.ADMIN)
+		{
+			String userToDelete = "";
+			System.out.print("Write the username of the user to delete: ");
+			userToDelete = sc.nextLine();
+			if(this.uDAO.existsUsername(userToDelete))
+			{
+				return this.uDAO.delete(this.uDAO.searchByUsername(userToDelete).getID());
+			}
+			System.out.println("[E]: Username not found");
+			return false;
+		}
+		System.out.println("Are you sure you want to delete your user?");
+		System.out.println("[1] Yes");
+		System.out.println("[0] No");
+		SessionMenu.askForChoice();
+		int choice = InputUtils.askForNumber(sc);
+		sc.nextLine();
+		if(choice == 1)
+		{
+			return this.uDAO.delete(this.sessionUser.getID());
+		}
+		return false;		
 	}
 	
 	private void changeUserPassword()
@@ -104,6 +256,10 @@ public class Session
 		do {
 			System.out.print("Enter current password: ");
 			currentPassword = sc.nextLine();
+			if(!this.sessionUser.correctPassword(currentPassword))
+			{
+				System.out.println("[E]: Incorrect password");
+			}
 		}while(!this.sessionUser.correctPassword(currentPassword));
 		currentPassword = null;
 		String newPassword;
@@ -114,6 +270,7 @@ public class Session
 		this.sessionUser.setPassword(newPassword);
 		this.uDAO.updatePassword(this.sessionUser.getID(), User.createPasswordHash(newPassword));
 		newPassword = null;
+		System.out.println("\nPassword changed succesfully!\n");
 	}
 	
 	private int attachUser()
@@ -151,7 +308,7 @@ public class Session
 	//Ends current session safely
 	public void endSession()
 	{
-		
+		this.closeScanner();
 	}
 	
 	//Makes user sign up
@@ -162,7 +319,7 @@ public class Session
 		String password = "";
 		Gender gender = null;
 		LocalDate dateOfBirth = null;
-		System.out.println("\nUser login\n------------\n");
+		System.out.println("\nUser signup\n------------\n");
 		boolean validEmail = false;
 		do {
 			System.out.print("Enter your email: ");
@@ -208,6 +365,7 @@ public class Session
 		System.out.println("[3] Other");
 		int choice = -1;
 		do {
+			SessionMenu.askForChoice();
 			choice = InputUtils.askForNumber(sc);
 			sc.nextLine();
 			switch(choice)
@@ -267,5 +425,10 @@ public class Session
 			return;
 		}
 		this.sessionUser.updateLoginDate();
+	}
+	
+	public void closeScanner()
+	{
+		this.sc.close();
 	}
 }

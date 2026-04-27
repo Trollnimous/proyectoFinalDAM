@@ -32,7 +32,7 @@ public class Response
 	public Response(Post postID, User userResponseID, String content)
 	{
 		this.responseID = UUID.randomUUID();
-		this.postID = postID.getUUID();
+		this.postID = postID.getPostID();
 		this.authorID = userResponseID.getUserID();
 		
 		this.responseDate = LocalDate.now();
@@ -54,7 +54,7 @@ public class Response
 	public Response(Post postID, User userResponseID, String content, String title)
 	{
 		this.responseID = UUID.randomUUID();
-		this.postID = postID.getUUID();
+		this.postID = postID.getPostID();
 		this.authorID = userResponseID.getUserID();
 		
 		this.responseDate = LocalDate.now();

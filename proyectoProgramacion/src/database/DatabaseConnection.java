@@ -6,7 +6,7 @@ import java.sql.SQLException;
 
 public class DatabaseConnection
 {
-    private static final String URL = "jdbc:mysql://proyecto-programacion-2026.duckdns.org:57840/proyecto_programacion";
+    private static final String URL = "jdbc:mysql://proyecto-programacion-2026.duckdns.org:57840/proyecto_programacion?connectTimeout=5000&socketTimeout=15000";
     private static final String USER = "usuario";
     private static final String PASSWORD = "PasswordUser"; 
 

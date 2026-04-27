@@ -1,9 +1,14 @@
 package post;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import database.UserDAO;
 import users.User;
+import users.gender.Gender;
+import users.roles.Role;
 
 public class Post
 {
@@ -22,6 +27,21 @@ public class Post
 	
 	
 	//Constructores
+	public Post()
+	{
+		this.postID = null;
+		this.uploaderID = null;
+		
+		this.title = null;
+		this.content = null;
+		this.likes = 0;
+		this.publishDate = null;
+		
+		this.maxReadings = 0;
+		this.responseEmail = null;
+		this.wantsResponse = false;
+		this.awaitsModeration = false;
+	}
 	
 	public Post(UUID uploaderID, String title, String content, int maxReadings, String responseEmail,
 			boolean wantsResponse)
@@ -92,8 +112,91 @@ public class Post
 	
 	
 	//Getters
-	public UUID getUUID()
+	public UUID getPostID()
 	{
-		return this.getUUID();
+		return this.postID;
+	}
+
+	public UUID getUploaderID()
+	{
+		return uploaderID;
+	}
+
+	public String getTitle()
+	{
+		return title;
+	}
+
+	public String getContent()
+	{
+		return content;
+	}
+
+	public int getLikes()
+	{
+		return likes;
+	}
+
+	public LocalDate getPublishDate()
+	{
+		return publishDate;
+	}
+
+	public int getMaxReadings()
+	{
+		return maxReadings;
+	}
+
+	public String getResponseEmail()
+	{
+		return responseEmail;
+	}
+
+	public boolean wantsResponse()
+	{
+		return wantsResponse;
+	}
+
+	public boolean awaitsModeration()
+	{
+		return awaitsModeration;
+	}
+	
+	public User getUser(UserDAO uDAO)
+	{
+		return uDAO.searchById(this.uploaderID);
+	}
+	
+	//Métodos
+	public static Post buildPostFromResultSet(ResultSet rs)
+	{
+		Post postToReturn = new Post();
+
+        try {
+        	// 4. Mapeamos de SQL a Java (nombre de columna en la BD)
+            postToReturn.postID = UUID.fromString(rs.getString("post_id"));
+            postToReturn.uploaderID = UUID.fromString(rs.getString("uploader_id"));
+            postToReturn.title = rs.getString("title");
+            postToReturn.content = rs.getString("content");
+            postToReturn.likes = rs.getInt("likes");
+            java.sql.Date publishDate = rs.getDate("publish_date");
+            postToReturn.publishDate = publishDate.toLocalDate();
+            postToReturn.maxReadings = rs.getInt("max_readings");
+            postToReturn.responseEmail = rs.getString("response_email");
+            postToReturn.wantsResponse = rs.getBoolean("wants_response");
+            postToReturn.awaitsModeration = rs.getBoolean("awaits_moderation");
+
+        }catch(SQLException e)
+        {
+        	System.out.println("Error a la hora de reconstruir el usuario: "+ e.getMessage());
+        }
+        
+        return postToReturn;
+	}
+	
+	@Override
+	public String toString()
+	{
+		return String.format("%s\n\n%s", this.title,this.content);
 	}
 }

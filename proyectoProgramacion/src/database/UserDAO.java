@@ -187,6 +187,38 @@ public class UserDAO implements DAO<User>
 		
 	}
 	
+	public User searchByUsername(String usernameToSearch)
+	{
+		User userToReturn = null;
+        String sql = "select * from users where (username = ?);";
+
+        try (Connection conn = DatabaseConnection.getConexion(); 
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, usernameToSearch);
+            
+            try (ResultSet rs = pstmt.executeQuery()) 
+            {
+                if (rs.next()) 
+                {
+                	//System.out.println("✅ Usuario encontrado correctamente en la BD.");
+                    userToReturn = User.buildUserFromResultSet(rs);
+                }            
+                else
+                {
+                	System.out.println("❌ El usuario no se ha encontrado en la BBDD");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ Error al encontrar: " + e.getMessage());
+        } catch (NullPointerException e)
+        {
+        	System.out.println("❌ Error al encontrar: " + e.getMessage());
+        }
+		return userToReturn;
+		
+	}
+	
 	public boolean existsEmail(String email) {
 	    // Usamos SELECT 1 y EXISTS para que sea lo más rápido posible
 	    String sql = "SELECT EXISTS(SELECT 1 FROM users WHERE email = ?) AS is_present";

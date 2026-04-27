@@ -33,14 +33,22 @@ public class SessionMenu
 		System.out.println("[2] Read");
 		System.out.println("[3] Read and respond");
 		System.out.println("[4] See your posts");
-		System.out.println("[5] See respnses to your posts");
+		System.out.println("[5] See responses to your posts");
 		System.out.println("[6] Change password");
+		System.out.println("[7] Delete your user");
 		System.out.println("[0] Exit\n");
+	}
+	
+	public static void printUserName(String username)
+	{
+		System.out.println("Welcome, "+username);
+		System.out.println("-------------------------\n");
 	}
 	
 	public static void printAdminMenu()
 	{
 		System.out.println("[1] Change password");
+		System.out.println("[2] Delete user");
 		System.out.println("[0] Exit\n");
 	}
 	
@@ -86,7 +94,7 @@ public class SessionMenu
 	{
 		System.out.println("[1] Log in");
 		System.out.println("[2] Sign up");
-		System.out.println("[0] Exit program");
+		System.out.println("[0] Exit program\n");
 	}
 	
 	public static void choiceInvalidMessage()

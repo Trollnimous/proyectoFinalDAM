@@ -17,7 +17,17 @@ public class Main
 	public static void main(String[] args) throws IOException
 	{
 		Session activeSession = new Session();
-		activeSession.startSession();
+		try 
+		{
+			activeSession.startSession();
+		}catch(Exception e)
+		{
+			System.out.println(e.getMessage());
+		}finally
+		{
+			activeSession.closeScanner();
+		}
+		
 	}
 
 }
