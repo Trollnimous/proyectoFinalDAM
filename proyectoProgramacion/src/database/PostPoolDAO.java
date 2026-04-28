@@ -4,17 +4,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Time;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-
+import database.exceptions.EmptyPostPoolException;
 import post.Post;
-import users.User;
-
-import java.sql.Date;
 
 public class PostPoolDAO implements DAO<Post>
 {
@@ -169,6 +163,7 @@ public class PostPoolDAO implements DAO<Post>
 	
 	public List<Post> listAll(UUID postID)
 	{
+		PostDAO pDAO = new PostDAO();
 		List<Post> listToReturn = new LinkedList<Post>();
 		String sql = "select * from posts_pool where post_id = ?;";
 		
@@ -180,7 +175,7 @@ public class PostPoolDAO implements DAO<Post>
 	            {
 	                while(rs.next()) 
 	                {
-	                	listToReturn.add(Post.buildPostFromResultSet(rs));
+	                	listToReturn.add(pDAO.searchById(postID));
 	                }            
 
 	            }

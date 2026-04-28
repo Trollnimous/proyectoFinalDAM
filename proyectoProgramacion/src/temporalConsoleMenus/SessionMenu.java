@@ -41,6 +41,7 @@ public class SessionMenu
 	
 	public static void printUserName(String username)
 	{
+		System.out.println("-------------------------\n");
 		System.out.println("Welcome, "+username);
 		System.out.println("-------------------------\n");
 	}

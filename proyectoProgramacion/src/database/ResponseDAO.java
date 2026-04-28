@@ -7,36 +7,32 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import post.Post;
+import responses.Response;
+
 import java.sql.Date;
 
-public class PostDAO implements DAO<Post>
+public class ResponseDAO implements DAO<Response>
 {
 	//Usar SOLO PARA CREAR UN NUEVO POST
 	@Override
-	public boolean insert(Post post) {
+	public boolean insert(Response response) {
 		boolean valid = false;
-        String sql = "INSERT INTO posts (post_id, uploader_id, title, content, likes, publish_date, max_readings, response_email, wants_response, awaits_moderation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ;";
+        String sql = "INSERT INTO responses (response_id, post_id, author_id, response_date, title, content) VALUES (?, ?, ?, ?, ?, ?) ;";
 
         try (Connection conn = DatabaseConnection.getConexion(); 
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, post.getPostID().toString());
-            pstmt.setString(2, post.getUploaderID().toString());
-            pstmt.setString(3, post.getTitle());
-            pstmt.setString(4, post.getContent());
-            pstmt.setInt(5, post.getLikes());
+            pstmt.setString(1, response.getResponseID().toString());
+            pstmt.setString(2, response.getPostID().toString());
+            pstmt.setString(3, response.getAuthorID().toString());
             
-            pstmt.setDate(6, Date.valueOf(post.getPublishDate()));
-            pstmt.setInt(7, post.getMaxReadings());
-            
-            pstmt.setString(8, post.getResponseEmail());
-            pstmt.setBoolean(9, post.wantsResponse());
-            pstmt.setBoolean(10, post.awaitsModeration());
+            pstmt.setDate(4, Date.valueOf(response.getResponseDate()));
+            pstmt.setString(5, response.getTitle());
+            pstmt.setString(6, response.getContent());
             
             // 4. EJECUTAR
             pstmt.executeUpdate(); // Este comando envía los datos a MySQL
-            System.out.println("✅ Post insertado correctamente en la BD.");
+            System.out.println("✅ Respuesta insertada correctamente en la BD.");
             valid = true;
 
         } catch (SQLException e) {
@@ -49,7 +45,7 @@ public class PostDAO implements DAO<Post>
     }
 
 	@Override
-	public boolean update(Post post)
+	public boolean update(Response response)
 	{
 		//Esto no lo hacemos porque no sabemos hacerlo bien para varias cosas
 		return false;
@@ -59,7 +55,7 @@ public class PostDAO implements DAO<Post>
 	public boolean delete(UUID idToRemove)
 	{
 		boolean valid = false;
-        String sql = "delete from posts where (post_id = ?);";
+        String sql = "delete from responses where (response_id = ?);";
         try (Connection conn = DatabaseConnection.getConexion(); 
              PreparedStatement pstmt = conn.prepareStatement(sql)) 
         {
@@ -68,7 +64,7 @@ public class PostDAO implements DAO<Post>
             
             // 4. EJECUTAR
             pstmt.executeUpdate(); // Este comando envía los datos a MySQL
-            System.out.println("✅ Post borrado correctamente de la BD.");
+            System.out.println("✅ Respuesta borrada correctamente de la BD.");
             valid = true;
 
         } catch (SQLException e) {
@@ -81,10 +77,10 @@ public class PostDAO implements DAO<Post>
 	}
 
 	@Override
-	public Post searchById(UUID idToSearch)
+	public Response searchById(UUID idToSearch)
 	{
-		Post postToReturn = null;
-        String sql = "select * from posts where (post_id = ?);";
+		Response responseToReturn = null;
+        String sql = "select * from responses where (response_id = ?);";
 
         try (Connection conn = DatabaseConnection.getConexion(); 
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -95,12 +91,12 @@ public class PostDAO implements DAO<Post>
             {
                 if (rs.next()) 
                 {
-                	System.out.println("✅ Post encontrado correctamente en la BD.");
-                    postToReturn = Post.buildPostFromResultSet(rs);
+                	System.out.println("✅ Respuesta encontrada correctamente en la BD.");
+                    responseToReturn = Response.buildResponseFromResultSet(rs);
                 }            
                 else
                 {
-                	System.out.println("❌ El post no se ha encontrado en la BBDD");
+                	System.out.println("❌ La respuesta no se ha encontrado en la BBDD");
                 }
             }
         } catch (SQLException e) {
@@ -109,14 +105,14 @@ public class PostDAO implements DAO<Post>
         {
         	System.out.println("❌ Error al insertar: " + e.getMessage());
         }
-		return postToReturn;
+		return responseToReturn;
 		
 	}
 
 	@Override
-	public List<Post> listAll()
+	public List<Response> listAll()
 	{
-		List<Post> listToReturn = new LinkedList<Post>();
+		List<Response> listToReturn = new LinkedList<Response>();
 		String sql = "select * from posts;";
 		
 		try (Connection conn = DatabaseConnection.getConexion(); 
@@ -126,7 +122,7 @@ public class PostDAO implements DAO<Post>
 	            {
 	                while(rs.next()) 
 	                {
-	                	listToReturn.add(Post.buildPostFromResultSet(rs));
+	                	listToReturn.add(Response.buildResponseFromResultSet(rs));
 	                }            
 
 	            }
@@ -140,20 +136,20 @@ public class PostDAO implements DAO<Post>
 		return listToReturn;
 	}
 	
-	public List<Post> listAll(UUID uploaderID)
+	public List<Response> listAllFromUser(UUID authorID)
 	{
-		List<Post> listToReturn = new LinkedList<Post>();
-		String sql = "select * from posts where uploader_id = ?;";
+		List<Response> listToReturn = new LinkedList<Response>();
+		String sql = "select * from responses where author_id = ?;";
 		
 		try (Connection conn = DatabaseConnection.getConexion(); 
 	             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-				pstmt.setString(1, uploaderID.toString());
+				pstmt.setString(1, authorID.toString());
 	            try (ResultSet rs = pstmt.executeQuery()) 
 	            {
 	                while(rs.next()) 
 	                {
-	                	listToReturn.add(Post.buildPostFromResultSet(rs));
+	                	listToReturn.add(Response.buildResponseFromResultSet(rs));
 	                }            
 
 	            }
@@ -167,5 +163,30 @@ public class PostDAO implements DAO<Post>
 		return listToReturn;
 	}
 	
+	public List<Response> listAllFromPost(UUID postID)
+	{
+		List<Response> listToReturn = new LinkedList<Response>();
+		String sql = "select * from responses where post_id = ?;";
+		
+		try (Connection conn = DatabaseConnection.getConexion(); 
+	             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
+				pstmt.setString(1, postID.toString());
+	            try (ResultSet rs = pstmt.executeQuery()) 
+	            {
+	                while(rs.next()) 
+	                {
+	                	listToReturn.add(Response.buildResponseFromResultSet(rs));
+	                }            
+
+	            }
+	        } catch (SQLException e) {
+	            System.out.println("❌ Error al obtener lista: " + e.getMessage());
+	        } catch (NullPointerException e)
+	        {
+	        	System.out.println("❌ Error al obtener lista: " + e.getMessage());
+	        }
+		
+		return listToReturn;
+	}
 }

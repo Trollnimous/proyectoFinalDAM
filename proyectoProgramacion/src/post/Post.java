@@ -7,8 +7,6 @@ import java.util.UUID;
 
 import database.UserDAO;
 import users.User;
-import users.gender.Gender;
-import users.roles.Role;
 
 public class Post
 {
@@ -188,7 +186,7 @@ public class Post
 
         }catch(SQLException e)
         {
-        	System.out.println("Error a la hora de reconstruir el usuario: "+ e.getMessage());
+        	System.out.println("Error a la hora de reconstruir el post: "+ e.getMessage());
         }
         
         return postToReturn;
@@ -197,6 +195,6 @@ public class Post
 	@Override
 	public String toString()
 	{
-		return String.format("%s\n\n%s", this.title,this.content);
+		return String.format("\n--------------------------------\n%s\n--------------------------------\n%s\n--------------------------------\n", this.title,this.content);
 	}
 }

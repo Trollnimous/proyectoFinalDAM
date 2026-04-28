@@ -1,17 +1,17 @@
 package session;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
-
-import database.EmptyPostPoolException;
+import java.util.UUID;
 import database.PostDAO;
 import database.PostPoolDAO;
+import database.ResponseDAO;
 import database.UserDAO;
+import database.exceptions.EmptyPostPoolException;
 import inputs.InputUtils;
 import post.Post;
-import temporalConsoleDatabase.TemporalDatabase;
+import responses.Response;
 import temporalConsoleMenus.SessionMenu;
 import users.User;
 import users.UserUtils;
@@ -25,9 +25,11 @@ public class Session
 	private UserDAO uDAO;
 	private PostDAO pDAO;
 	private PostPoolDAO ppDAO;
+	private ResponseDAO rDAO;
 	
 	public Session()
 	{
+		this.rDAO = new ResponseDAO();
 		this.ppDAO = new PostPoolDAO();
 		this.pDAO = new PostDAO();
 		this.uDAO = new UserDAO();
@@ -94,6 +96,9 @@ public class Session
 			case 4:
 				this.seeUserPosts();
 				return 1;
+			case 5:
+				this.seeResponsesToUsersPosts();
+				return 1;
 			case 6:
 				this.changeUserPassword();
 				return 1;
@@ -113,8 +118,14 @@ public class Session
 	{
 		try
 		{
-			System.out.println(this.pDAO.searchById(this.ppDAO.getPostToRead()));
+			UUID idToRead = this.ppDAO.getPostToReadAndRespond();
+			System.out.println(this.pDAO.searchById(idToRead));
 			System.out.println();
+			System.out.println("Write the title of the response:");
+			String title = this.sc.nextLine();
+			System.out.println("\nWrite the content of the response:");
+			String content = this.sc.nextLine();
+			this.rDAO.insert(new Response(idToRead,this.sessionUser.getID(),content, title));
 		} catch (EmptyPostPoolException e)
 		{
 			System.out.println("\n[E]: The post pool is empty\n");
@@ -222,6 +233,46 @@ public class Session
 		return;
 	}
 	
+	private void seeResponsesToUsersPosts()
+	{
+		int choice = -1;
+		List<Post> usersPosts = this.pDAO.listAll(this.sessionUser.getID());
+		for(int i = 0; i < usersPosts.size(); i++)
+		{
+			System.out.println(String.format("[%d] %s", i+1,usersPosts.get(i).getTitle()));
+		}
+		System.out.println("[0] Return\n");
+		SessionMenu.askForChoice();
+		choice = InputUtils.askForNumber(sc);
+		sc.nextLine();
+		if(choice == 0 )
+		{
+			return;
+		}
+		System.out.println(usersPosts.get(choice-1));
+		System.out.println("\nThese are the responses:\n");
+		List<Response> postResponses = this.rDAO.listAllFromPost(usersPosts.get(choice-1).getPostID());
+		if(postResponses.size() < 1)
+		{
+			System.out.println("There are no responses to this post\n");
+			return;
+		}
+		for(int i = 0; i < postResponses.size(); i++)
+		{
+			System.out.println(String.format("[%d] %s", i+1,postResponses.get(i).getTitle()));
+		}
+		System.out.println("[0] Return\n");
+		SessionMenu.askForChoice();
+		choice = InputUtils.askForNumber(sc);
+		sc.nextLine();
+		if(choice == 0 || !InputUtils.validChoice(choice, 0, postResponses.size(), false))
+		{
+			return;
+		}
+		System.out.println(postResponses.get(choice-1));
+		System.out.println();
+	}
+	
 	private boolean deleteUser(User sessionUser)
 	{
 		
@@ -318,7 +369,6 @@ public class Session
 		String username = "";
 		String password = "";
 		Gender gender = null;
-		LocalDate dateOfBirth = null;
 		System.out.println("\nUser signup\n------------\n");
 		boolean validEmail = false;
 		do {

@@ -1,21 +1,15 @@
 package users;
 
 import java.io.Serializable;
-import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Time;
 import java.time.LocalDate;
 import java.util.Objects;
 import java.util.UUID;
 import java.time.LocalTime;
-
 import de.mkammerer.argon2.Argon2Factory;
 import users.gender.Gender;
 import users.roles.Role;
-
-import java.sql.Time;
-import java.sql.Date;
 
 public class User implements Serializable
 {
