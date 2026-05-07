@@ -11,7 +11,7 @@ public class Main
 		Session activeSession = new Session();
 		try 
 		{
-			activeSession.startSession();
+			activeSession.legacyStartSession();
 		}catch(Exception e)
 		{
 			System.out.println(e.getMessage());

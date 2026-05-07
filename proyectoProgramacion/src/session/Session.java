@@ -1,6 +1,7 @@
 package session;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Scanner;
 import java.util.UUID;
@@ -9,9 +10,11 @@ import database.PostPoolDAO;
 import database.ResponseDAO;
 import database.UserDAO;
 import database.exceptions.EmptyPostPoolException;
+import database.exceptions.RegistryNotFoundException;
 import inputs.InputUtils;
 import post.Post;
 import responses.Response;
+import session.exceptions.LoginFailedException;
 import temporalConsoleMenus.SessionMenu;
 import users.User;
 import users.UserUtils;
@@ -26,6 +29,8 @@ public class Session
 	private PostDAO pDAO;
 	private PostPoolDAO ppDAO;
 	private ResponseDAO rDAO;
+	private LocalDate startDate;
+	private LocalTime startTime;
 	
 	public Session()
 	{
@@ -33,10 +38,12 @@ public class Session
 		this.ppDAO = new PostPoolDAO();
 		this.pDAO = new PostDAO();
 		this.uDAO = new UserDAO();
+		this.startDate = null;
+		this.startTime = null;
 		this.sessionUser = null;
 	}
 	
-	public void startSession()
+	public void legacyStartSession()
 	{
 		int sessionStatus = 1;
 		while(sessionStatus > 0)
@@ -46,7 +53,7 @@ public class Session
 			{
 				//Session has no user attached
 				case 1:
-					sessionStatus = this.attachUser();
+					//sessionStatus = this.attachUser();
 					break;
 				//User menu
 				case 2:
@@ -324,7 +331,7 @@ public class Session
 		System.out.println("\nPassword changed succesfully!\n");
 	}
 	
-	private int attachUser()
+	private int legacyAttachUser()
 	{
 		int choice = -1;
 		SessionMenu.logUserMenu();
@@ -340,7 +347,7 @@ public class Session
 		switch (choice)
 		{
 			case 1:
-				this.userLogin();
+				//this.userLogin();
 				break;
 			case 2:
 				this.signUpUser();
@@ -441,7 +448,29 @@ public class Session
 	}
 	
 	//Logs in user in session
-	private void userLogin()
+	public void userLogin(String email, String password) throws LoginFailedException
+	{
+		User userToLogin = null;
+		try
+		{
+			userToLogin = this.uDAO.searchByEmail(email);
+			if(userToLogin.correctPassword(password))
+			{
+				this.sessionUser = userToLogin;
+				this.uDAO.updateLastLoginDate(this.sessionUser.getID());
+				this.updateLastLoginFromUser();
+			}
+			else
+			{
+				throw new LoginFailedException();
+			}
+		} catch (RegistryNotFoundException e)
+		{
+			throw new LoginFailedException();
+		}
+	}
+	
+	private void legacyUserLogin()
 	{
 		User userToLogin = null;
 		String email;
@@ -452,7 +481,7 @@ public class Session
 			email = sc.nextLine();
 			SessionMenu.askForPassword();
 			password = sc.nextLine();
-			userToLogin = this.uDAO.searchByEmail(email);
+			//userToLogin = this.uDAO.searchByEmail(email);
 			if(this.uDAO.existsEmail(email) && userToLogin.correctPassword(password))
 			{
 				this.sessionUser = userToLogin;

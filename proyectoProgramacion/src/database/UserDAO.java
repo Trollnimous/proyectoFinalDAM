@@ -11,6 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import database.exceptions.RegistryNotFoundException;
 import users.User;
 
 import java.sql.Date;
@@ -155,7 +156,8 @@ public class UserDAO implements DAO<User>
 		return listToReturn;
 	}
 	
-	public User searchByEmail(String emailToSearch)
+	//Devuelve el usuario
+	public User searchByEmail(String emailToSearch) throws RegistryNotFoundException
 	{
 		User userToReturn = null;
         String sql = "select * from users where (email = ?);";
@@ -175,6 +177,7 @@ public class UserDAO implements DAO<User>
                 else
                 {
                 	System.out.println("❌ El usuario no se ha encontrado en la BBDD");
+                	throw new RegistryNotFoundException("Usuario", "email");
                 }
             }
         } catch (SQLException e) {
@@ -265,7 +268,8 @@ public class UserDAO implements DAO<User>
 	    return false;
 	}
 	
-	public boolean updateLastLoginDate(UUID userToUpdateID) {
+	public boolean updateLastLoginDate(UUID userToUpdateID)
+	{
 	    String sql = "UPDATE users SET last_login_date = ?, last_login_hour = ? where user_id = ?";
 
 	    try (Connection conn = DatabaseConnection.getConexion();
