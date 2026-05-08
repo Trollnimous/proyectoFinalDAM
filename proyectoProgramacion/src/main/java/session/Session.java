@@ -1,23 +1,23 @@
 package session;
 
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Scanner;
 import java.util.UUID;
-import database.PostDAO;
-import database.PostPoolDAO;
-import database.ResponseDAO;
-import database.UserDAO;
-import database.exceptions.EmptyPostPoolException;
-import database.exceptions.RegistryNotFoundException;
+import database.*;
+import database.exceptions.*;
 import inputs.InputUtils;
 import post.Post;
 import responses.Response;
 import session.exceptions.LoginFailedException;
+import session.exceptions.SignUpFailedException;
 import temporalConsoleMenus.SessionMenu;
+import userInterface.ErrorHandler;
 import users.User;
 import users.UserUtils;
+import users.exceptions.*;
 import users.gender.Gender;
 import users.roles.Role;
 
@@ -350,7 +350,7 @@ public class Session
 				//this.userLogin();
 				break;
 			case 2:
-				this.signUpUser();
+				//this.signUpUser();
 				break;
 			case 0:
 				this.endSession();
@@ -370,7 +370,67 @@ public class Session
 	}
 	
 	//Makes user sign up
-	private void signUpUser()
+	public void signUpUser(String email, String username, String password, String passwordConfirmation, String gender, LocalDate dateOfBirth) throws InvalidEmailException, InvalidUsernameException
+	,DuplicateUsernameException, DuplicateEmailException, InvalidPasswordException, FailedPasswordVerificationException, SignUpFailedException, InvalidDateOfBirthException
+	{
+		if(!UserUtils.validEmail(email))
+		{
+			throw new InvalidEmailException();
+		}
+		if(this.uDAO.existsEmail(email))
+		{
+			throw new DuplicateEmailException();
+		}
+		if(!UserUtils.validUsername(username))
+		{
+			throw new InvalidUsernameException();
+		}
+		if(this.uDAO.existsUsername(username))
+		{
+			throw new DuplicateUsernameException();
+		}
+		if(!password.equals(passwordConfirmation))
+		{
+			throw new FailedPasswordVerificationException();
+		}
+		if(!UserUtils.validPassword(password))
+		{
+			throw new InvalidPasswordException();
+		}
+		if(!UserUtils.validDateOfBirth(dateOfBirth))
+		{
+			throw new InvalidDateOfBirthException();
+		}
+		Gender genderToAssign = null;
+		switch(gender)
+		{
+			case "Hombre":
+				genderToAssign = Gender.MALE;
+				break;
+			case "Mujer":
+				genderToAssign = Gender.FEMALE;
+				break;
+			default:
+				genderToAssign = Gender.OTHER;
+				break;
+		}
+		User userToAttach = new User(email, password, username, genderToAssign, dateOfBirth);		
+		try {
+			this.uDAO.insert(userToAttach);
+			this.sessionUser = userToAttach;
+		}
+		catch(SQLException | NullPointerException e)
+		{
+			throw new SignUpFailedException();
+		}
+		catch(Exception e)
+		{
+			ErrorHandler.showError(e);
+		}
+		
+	}
+	
+	public void legacySignUpUser()
 	{
 		String email = "";
 		String username = "";
@@ -443,7 +503,7 @@ public class Session
 		}while(!InputUtils.validChoice(choice, 1, 3, false));
 		//TODO: meter para introducir día de nacimiento y consetiemiento de emails
 		User userToAttach = new User(email, password, username, gender, LocalDate.of(2026, 4, 11));
-		this.uDAO.insert(userToAttach);
+		//this.uDAO.insert(userToAttach);
 		this.sessionUser = userToAttach;
 	}
 	
@@ -509,5 +569,10 @@ public class Session
 	public void closeScanner()
 	{
 		this.sc.close();
+	}
+	
+	public User getUser()
+	{
+		return this.sessionUser;
 	}
 }

@@ -20,7 +20,8 @@ public class UserDAO implements DAO<User>
 {
 	//Usar SOLO PARA CREAR UN NUEVO USUARIO
 	@Override
-	public boolean insert(User user) {
+	public boolean insert(User user) throws SQLException, NullPointerException 
+	{
 		boolean valid = false;
         String sql = "INSERT INTO users (user_id, email, username, password_hash, gender, date_of_birth, user_role, accepts_response_emails, accepts_maintenance_emails, account_creation_date, account_last_modification_date, last_post_date, last_post_hour, last_reading_date, last_reading_hour, last_login_date, last_login_hour, available_writings, available_readings ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ;";
 
@@ -55,11 +56,6 @@ public class UserDAO implements DAO<User>
             System.out.println("✅ Usuario insertado correctamente en la BD.");
             valid = true;
 
-        } catch (SQLException e) {
-            System.out.println("❌ Error al insertar: " + e.getMessage());
-        } catch (NullPointerException e)
-        {
-        	System.out.println("❌ Error al insertar: " + e.getMessage());
         }
         return valid;
     }

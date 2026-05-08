@@ -1,0 +1,177 @@
+/* Fondo general */
+.root {
+    -fx-background-color: #121212;
+}
+
+/* Labels */
+.label {
+    -fx-text-fill: #e0e0e0;
+}
+
+/* TextFields */
+.text-field {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #ffffff;
+    -fx-prompt-text-fill: #888888;
+    -fx-border-color: #333333;
+}
+
+/* PasswordField */
+.password-field {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #ffffff;
+    -fx-prompt-text-fill: #888888;
+    -fx-border-color: #333333;
+}
+
+/* Botones */
+.button {
+    -fx-background-color: #2a2a2a;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #444444;
+}
+
+.button:hover {
+    -fx-background-color: #3a3a3a;
+}
+
+/* Hyperlinks */
+.hyperlink {
+    -fx-text-fill: #4da3ff;
+}
+
+.hyperlink:hover {
+    -fx-text-fill: #82cfff;
+}
+
+/* Texto del checkbox */
+.check-box {
+    -fx-text-fill: #e0e0e0;
+}
+
+/* Caja (cuadrado) */
+.check-box .box {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #444444;
+    -fx-border-radius: 3;
+    -fx-background-radius: 3;
+}
+
+/* Estado marcado */
+.check-box:selected .mark {
+    -fx-background-color: #4da3ff;
+}
+
+/* Hover */
+.check-box:hover .box {
+    -fx-border-color: #666666;
+}
+
+/* Caja principal */
+.combo-box {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #444444;
+}
+
+/* Texto seleccionado */
+.combo-box .list-cell {
+    -fx-text-fill: #ffffff;
+    -fx-background-color: #1e1e1e;
+}
+
+/* Botón de despliegue (flecha) */
+.combo-box .arrow-button {
+    -fx-background-color: #2a2a2a;
+}
+
+/* Flecha */
+.combo-box .arrow {
+    -fx-background-color: #cccccc;
+}
+
+/* Lista desplegable */
+.combo-box-popup .list-view {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #444444;
+}
+
+/* Elementos de la lista */
+.combo-box-popup .list-cell {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #e0e0e0;
+}
+
+/* Hover en opciones */
+.combo-box-popup .list-cell:hover {
+    -fx-background-color: #333333;
+}
+
+/* Caja principal */
+.date-picker {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: white;
+    -fx-border-color: #444444;
+}
+
+/* Campo de texto interno */
+.date-picker .text-field {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: white;
+    -fx-prompt-text-fill: #888888;
+}
+
+/* Botón del calendario */
+.date-picker .arrow-button {
+    -fx-background-color: #2a2a2a;
+}
+
+/* Icono del calendario */
+.date-picker .arrow {
+    -fx-background-color: #cccccc;
+}
+
+/* Fondo del calendario desplegable */
+.date-picker-popup {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #444444;
+}
+
+/* Cabecera (mes / año) */
+.date-picker-popup .month-year-pane {
+    -fx-background-color: #2a2a2a;
+}
+
+/* Días del calendario */
+.date-picker-popup .day-cell {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #e0e0e0;
+}
+
+/* Hover en días */
+.date-picker-popup .day-cell:hover {
+    -fx-background-color: #333333;
+}
+
+/* Día seleccionado */
+.date-picker-popup .selected {
+    -fx-background-color: #4da3ff;
+    -fx-text-fill: white;
+}
+
+.date-picker-popup .week-number-header,
+.date-picker-popup .day-name-cell {
+    -fx-background-color: #2a2a2a;
+    -fx-text-fill: #cccccc;
+}
+
+.date-picker-popup .week-number-cell {
+    -fx-background-color: #1e1e1e;
+    -fx-text-fill: #888888;
+}
+
+.date-picker-popup .calendar-grid {
+    -fx-background-color: #1e1e1e;
+    -fx-border-color: #333333;
+}
+

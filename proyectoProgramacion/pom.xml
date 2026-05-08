@@ -6,9 +6,19 @@
   <artifactId>proyectoProgramacion</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <build>
-  
     <sourceDirectory>src</sourceDirectory>
     <plugins>
+    <plugin>
+    <artifactId>maven-jar-plugin</artifactId>
+    <version>3.3.0</version>
+    <configuration>
+        <archive>
+            <manifest>
+                <mainClass>userInterface.MainJavaFX</mainClass>
+            </manifest>
+        </archive>
+    </configuration>
+</plugin>
     <plugin>
     <groupId>org.openjfx</groupId>
     <artifactId>javafx-maven-plugin</artifactId>

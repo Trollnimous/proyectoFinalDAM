@@ -1,13 +1,28 @@
 package userInterface;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+
 import appContext.AppContext;
+import database.exceptions.DuplicateEmailException;
+import database.exceptions.DuplicateUsernameException;
 import javafx.application.*;
+import javafx.geometry.Pos;
 import javafx.scene.*;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.*;
 import session.Session;
 import session.exceptions.LoginFailedException;
+import session.exceptions.SignUpFailedException;
+import users.exceptions.FailedPasswordVerificationException;
+import users.exceptions.InvalidDateOfBirthException;
+import users.exceptions.InvalidEmailException;
+import users.exceptions.InvalidPasswordException;
+import users.exceptions.InvalidUsernameException;
+import users.roles.Role;
 
 public class MainJavaFX extends Application 
 {
@@ -20,6 +35,8 @@ public class MainJavaFX extends Application
 	private static final String SIGN_UP_PASSWORD_CONFIRMATION_LABEL_TEXT = "Repite la contraseña:";
 	private static final String SIGN_UP_SEX_LABEL_TEXT = "Cual es tu sexo:";
 	private static final String SIGN_UP_DATE_OF_BIRTH_LABEL_TEXT = "Introduce tu fecha de nacimiento:";
+	private static final String MAINTENANCE_EMAILS_CHECKBOX_TEXT = "Acepto recibir emails de mantenimiento";
+	private static final String RESPONSE_EMAILS_CHECKBOX_TEXT = "Acepto recibir emails a las respuestas de mis posts";
 	
 	private static final String EMAIL_TEXT_FIELD_TEXT = "Email";
 	private static final String PASSWORD_PASSWORD_FIELD_TEXT = "Contraseña";
@@ -31,11 +48,20 @@ public class MainJavaFX extends Application
 	private static final String CHOICE_SIGN_UP_HYPERLINK_TEXT = "¿No tienes cuenta? - Registrate";
 	private static final String CHOICE_LOG_IN_HYPERLINK_TEXT = "¿Tienes cuenta? - Iniciar Sesión";
 
+	private static final int PREFERRED_TEXT_FIELD_WIDTH = 200;
+	private static final int PREFERRED_FORM_WIDTH = 250;
+	private static final int MAX_FORM_WIDTH = 300;
+
+	private static final int CHECKBOX_INNER_SPACING = 50;
 	
 	private BorderPane root;
 	
 	public void showSignUpPage(Stage stage)
 	{
+		//Titulo
+		Image gif = new Image(getClass().getResourceAsStream("/loginTitle.gif"));
+		ImageView titleView = new ImageView(gif);
+		
 		//Botones y textos
         Label labelWriteYourEmail = new Label(SIGN_UP_EMAIL_LABEL_TEXT);
         Label labelWriteYourUsername = new Label(SIGN_UP_USERNAME_LABEL_TEXT);
@@ -61,6 +87,14 @@ public class MainJavaFX extends Application
         
         DatePicker dPickerDateOfBirth = new DatePicker();
         
+        CheckBox checkBoxAcceptsResponse = new CheckBox(RESPONSE_EMAILS_CHECKBOX_TEXT); 
+        CheckBox checkBoxAcceptsMaintenance = new CheckBox(MAINTENANCE_EMAILS_CHECKBOX_TEXT); 
+        HBox checkBoxLayout = new HBox(checkBoxAcceptsResponse,checkBoxAcceptsMaintenance);
+        checkBoxLayout.setAlignment(Pos.CENTER);
+        checkBoxLayout.setMaxWidth(Double.MAX_VALUE);
+        checkBoxLayout.setSpacing(CHECKBOX_INNER_SPACING);
+        StackPane checkBoxCentered = new StackPane(checkBoxLayout);
+        
         Button buttonSignUp = new Button(SIGN_UP_BUTTON_TEXT);
         
         Hyperlink hlLogIn = new Hyperlink(CHOICE_LOG_IN_HYPERLINK_TEXT);
@@ -68,32 +102,53 @@ public class MainJavaFX extends Application
         //Creacion del layout
         VBox signUpLayout = new VBox();
         
-        signUpLayout.getChildren().addAll(labelWriteYourEmail,tFieldEmail,labelWriteYourUsername,tFieldUsername
+        signUpLayout.getChildren().addAll(titleView, labelWriteYourEmail,tFieldEmail,labelWriteYourUsername,tFieldUsername
         		,labelWriteYourPassword,pFieldPassword,labelConfirmYourPassword,pFieldPasswordConfirmation,
-        		labelSelectYourGender,comboGender,labelSelectYourDateOfBirth,dPickerDateOfBirth,buttonSignUp,hlLogIn);
+        		labelSelectYourGender,comboGender,labelSelectYourDateOfBirth,dPickerDateOfBirth,checkBoxCentered,buttonSignUp,hlLogIn);
 
-        root.setCenter(signUpLayout);
+        signUpLayout.setAlignment(Pos.CENTER);
+        signUpLayout.setSpacing(10);
+        signUpLayout.setPrefWidth(PREFERRED_FORM_WIDTH);
+        signUpLayout.setMaxWidth(MAX_FORM_WIDTH);
         
-      //Asignar comportamientos
+        StackPane centerContainer = new StackPane(signUpLayout);
+        
+        root.setCenter(centerContainer);
+        
+        //Asignar comportamientos
         buttonSignUp.setOnAction(s -> {
-        	String emailLogIn = tFieldEmail.getText();
-        	String passwordLogIn = pFieldPassword.getText();
-        	try {
-        		AppContext.session.userLogin(emailLogIn, passwordLogIn);
-        		ErrorHandler.showError("ea ya fucniona");
-        	}
-        	catch(LoginFailedException e)
+        	String emailSignUp = tFieldEmail.getText();
+        	String usernameSignUp = tFieldUsername.getText();
+        	String passwordSignUp = pFieldPassword.getText();
+        	String passwordConfirmationSignUp = pFieldPasswordConfirmation.getText();
+        	String genderSignUp = comboGender.getValue();
+        	LocalDate dateOfBirthSignUp = dPickerDateOfBirth.getValue();
+        	boolean validDate = true;
+        	if(dateOfBirthSignUp == null)
         	{
-        		ErrorHandler.showError(e);
+        		ErrorHandler.showError("Introduce un formato de fecha válido");
+        		validDate = false;
         	}
-        	catch(Exception e)
+        	if(validDate)
         	{
-        		ErrorHandler.showUnknownError();
-        	}
-        	finally
-        	{
-        		signUpLayout.requestFocus();
-        		pFieldPassword.clear();
+        		try 
+            	{
+    				AppContext.session.signUpUser(emailSignUp, usernameSignUp, passwordSignUp, passwordConfirmationSignUp, genderSignUp, dateOfBirthSignUp);
+    				this.showLoggedInPage(stage);
+            	}
+            	catch(InvalidEmailException | InvalidUsernameException | DuplicateUsernameException| InvalidDateOfBirthException
+    					| DuplicateEmailException | InvalidPasswordException | FailedPasswordVerificationException | SignUpFailedException e)
+            	{
+            		ErrorHandler.showError(e);
+            	}
+            	catch(Exception e)
+            	{
+            		ErrorHandler.showUnknownError();
+            	}
+            	finally
+            	{
+            		signUpLayout.requestFocus();
+            	}
         	}
         });
         
@@ -104,6 +159,10 @@ public class MainJavaFX extends Application
 	
 	public void showLoginPage(Stage stage)
 	{
+		//Titulo
+		Image gif = new Image(getClass().getResourceAsStream("/loginTitle.gif"));
+		ImageView titleView = new ImageView(gif);
+		
 		//Botones y textos
         Label labelWriteYourEmail = new Label(LOG_IN_EMAIL_LABEL_TEXT);
         Label labelWriteYourPassword = new Label(LOG_IN_PASSWORD_LABEL_TEXT);
@@ -120,10 +179,16 @@ public class MainJavaFX extends Application
         
         //Creacion del layout
         VBox loginLayout = new VBox();
+        loginLayout.setAlignment(Pos.CENTER);
+        loginLayout.setSpacing(10);
+        loginLayout.setPrefWidth(PREFERRED_FORM_WIDTH);
+        loginLayout.setMaxWidth(MAX_FORM_WIDTH);
         
-        loginLayout.getChildren().addAll(labelWriteYourEmail,tFieldEmail,labelWriteYourPassword,pFieldPassword,buttonLogIn,hlSingUp);
+        StackPane centerContainer = new StackPane(loginLayout);
+        
+        loginLayout.getChildren().addAll(titleView, labelWriteYourEmail,tFieldEmail,labelWriteYourPassword,pFieldPassword,buttonLogIn,hlSingUp);
 
-        root.setCenter(loginLayout);
+        root.setCenter(centerContainer);
         
       //Asignar comportamientos
         buttonLogIn.setOnAction(s -> {
@@ -131,7 +196,7 @@ public class MainJavaFX extends Application
         	String passwordLogIn = pFieldPassword.getText();
         	try {
         		AppContext.session.userLogin(emailLogIn, passwordLogIn);
-        		ErrorHandler.showError("ea ya fucniona");
+        		this.showLoggedInPage(stage);
         	}
         	catch(LoginFailedException e)
         	{
@@ -153,6 +218,34 @@ public class MainJavaFX extends Application
         });
 	}
 	
+	public void showLoggedInPage(Stage stage)
+	{
+		if(AppContext.session.getUser().getRole() == Role.ADMIN)
+		{
+			//TODO: hacer la vista de administrador
+		}
+		if(AppContext.session.getUser().getRole() == Role.USER)
+		{
+			this.showUserPage(stage);
+		}
+	}
+	
+	public void showUserPage(Stage stage)
+	{
+		//Botones y textos
+        Label labelWriteYourEmail = new Label("Hola, "+AppContext.session.getUser().getUsername());
+        
+        //Creacion del layout
+        VBox loginLayout = new VBox();
+        
+        loginLayout.getChildren().addAll(labelWriteYourEmail);
+
+        root.setCenter(loginLayout);
+        
+        //Asignar comportamientos
+
+	}
+	
     @Override
     public void start(Stage stage) 
     {
@@ -164,6 +257,7 @@ public class MainJavaFX extends Application
         
         //Creacion de la escena
         Scene escena = new Scene(root, 400, 200);
+        escena.getStylesheets().add(getClass().getResource("/darkMode.css").toExternalForm());
         
         this.showLoginPage(stage);
         
@@ -171,7 +265,7 @@ public class MainJavaFX extends Application
         stage.setScene(escena);
         stage.setMaximized(true);
         stage.show();
-        stage.getIcons().add(null);
+        stage.getIcons().add(new Image(getClass().getResourceAsStream("/undertaleHeart.png")));
         escena.setOnMouseClicked(e->{
         	root.requestFocus();
         });

@@ -1,5 +1,7 @@
 package users;
 
+import java.time.LocalDate;
+
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 
@@ -11,6 +13,7 @@ public abstract class UserUtils
 	private static final int MIN_USERNAME_LENGTH = 4;
 	private static final String USERNAME_REGEX = "^[A-Za-z0-9_.]+$";
 	private static final String PASSWORD_REGEX = "^(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9])(?!.*[.])\\S*$";
+	private static final int MINIMMUM_AGE = 18;
 	
 	//Devuelve true si el email pasado por parámetro tiene la estructura correcta
 	public static boolean validEmail(String email)
@@ -58,4 +61,13 @@ public abstract class UserUtils
 		return (UserUtils.MIN_PASSWORD_LENGTH<=password.length()&&password.length()<=UserUtils.MAX_PASSWORD_LENGTH);
 	}
 	
+	//Devuelve true si la 
+	public static boolean validDateOfBirth(LocalDate dateOfBirth)
+	{
+		if(dateOfBirth == null)
+		{
+			return false;
+		}
+		return !dateOfBirth.plusYears(MINIMMUM_AGE).isAfter(LocalDate.now());
+	}
 }
