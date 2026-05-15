@@ -3,7 +3,8 @@ package userInterface;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;;
+import javafx.scene.image.ImageView;
+import javafx.stage.Stage;;
 
 
 public class ErrorHandler
@@ -18,6 +19,10 @@ public class ErrorHandler
 	        ImageView imageView = new ImageView(new Image(ErrorHandler.class.getResource("/errorImage.png").toExternalForm()));
 	        imageView.setFitWidth(PREF_IMG_SIZE);
 	        imageView.setFitHeight(PREF_IMG_SIZE);
+	        
+	        Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
+	        alertStage.getIcons().add(new Image(ConfirmationPopUps.class.getResourceAsStream("/undertaleHeart.png")));
+	        
 	        alert.setGraphic(imageView);
 	        alert.getDialogPane().getStylesheets().add(ErrorHandler.class.getResource("/darkMode.css").toExternalForm());
 	        alert.showAndWait();
@@ -31,6 +36,10 @@ public class ErrorHandler
 	        ImageView imageView = new ImageView(new Image(ErrorHandler.class.getResource("/errorImage.png").toExternalForm()));
 	        imageView.setFitWidth(PREF_IMG_SIZE);
 	        imageView.setFitHeight(PREF_IMG_SIZE);
+	        
+	        Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
+	        alertStage.getIcons().add(new Image(ConfirmationPopUps.class.getResourceAsStream("/undertaleHeart.png")));
+	        
 	        alert.setGraphic(imageView);
 	        alert.getDialogPane().getStylesheets().add(ErrorHandler.class.getResource("/darkMode.css").toExternalForm());
 	        alert.showAndWait();
@@ -44,6 +53,10 @@ public class ErrorHandler
 	        ImageView imageView = new ImageView(new Image(ErrorHandler.class.getResource("/errorImage.png").toExternalForm()));
 	        imageView.setFitWidth(PREF_IMG_SIZE);
 	        imageView.setFitHeight(PREF_IMG_SIZE);
+	        
+	        Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
+	        alertStage.getIcons().add(new Image(ConfirmationPopUps.class.getResourceAsStream("/undertaleHeart.png")));
+	        
 	        alert.setGraphic(imageView);
 	        alert.getDialogPane().getStylesheets().add(ErrorHandler.class.getResource("/darkMode.css").toExternalForm());
 	        alert.showAndWait();

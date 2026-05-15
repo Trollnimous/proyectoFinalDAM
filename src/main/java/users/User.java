@@ -279,7 +279,7 @@ public class User implements Serializable
             userToReturn.role = Role.getRole(rs.getString("user_role"));
 
             userToReturn.acceptsResponseEmails = rs.getBoolean("accepts_response_emails");
-            userToReturn.acceptsMaintenanceEmails = rs.getBoolean("accepts_maintenance_emails");
+            userToReturn.acceptsMaintenanceEmails = rs.getBoolean("accepts_manteinance_emails");
             
             java.sql.Date accCreationDate = rs.getDate("account_creation_date");
             userToReturn.dateOfBirth = accCreationDate.toLocalDate();

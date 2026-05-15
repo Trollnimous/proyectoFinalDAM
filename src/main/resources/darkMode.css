@@ -38,6 +38,42 @@
     -fx-border-color: #333333;
 }
 
+/* 1. Contenedor principal */
+.text-area {
+	-fx-prompt-text-fill: #888888;
+	-fx-border-color: #333333;
+	-fx-background-color: #1e1e1e; 
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+    -fx-text-fill: white; /* Intentamos primero el estándar */
+}
+
+/* 2. FORZAR LETRAS BLANCAS */
+/* Atacamos el nodo interno de texto para asegurar el color */
+.text-area .text {
+	-fx-prompt-text-fill: #888888 !important;
+    -fx-fill: white !important;
+}
+
+/* 3. QUITAR / CAMBIAR BORDE AZUL AL ESCRIBIR */
+.text-area:focused {
+    /* Aquí definimos: primer color es el borde (puedes ponerlo gris #444) 
+       y el segundo es el fondo interno */
+    -fx-background-color: #555555, #1e1e1e; 
+    -fx-background-insets: -0.2, 1; /* El -0.2 es el grosor del borde de foco */
+}
+
+/* 4. ASEGURAR FONDO DEL CONTENIDO */
+.text-area .content {
+    -fx-background-color: #1e1e1e !important;
+}
+
+/* 5. EL CURSOR (Caret) */
+/* Si el fondo es negro y el cursor es negro, no verás dónde escribes */
+.text-area .caret {
+    -fx-stroke: white;
+}
+
 /* PasswordField */
 .password-field {
     -fx-background-color: #1e1e1e;
@@ -274,4 +310,142 @@
 
 .dialog-pane .button:hover {
     -fx-background-color: #444444;
+}
+
+/* El contenedor principal del menú desplegable */
+.context-menu {
+    -fx-background-color: #1a1a1a; /* Un gris muy oscuro, ligeramente diferente al fondo */
+    -fx-border-color: #333333;
+    -fx-border-width: 1px;
+    -fx-padding: 5px;
+}
+
+/* Cada una de las opciones (items) del menú */
+.menu-item {
+    -fx-background-color: transparent;
+}
+
+/* El texto dentro de las opciones */
+.menu-item .label {
+    -fx-text-fill: #e0e0e0;
+    -fx-padding: 0 10px 0 10px;
+}
+
+/* Cuando pasas el ratón por encima de una opción */
+.menu-item:focused, .menu-item:hover {
+    -fx-background-color: #333333; /* Color de resaltado */
+}
+
+.menu-item:focused .label, .menu-item:hover .label {
+    -fx-text-fill: white;
+}
+
+/* El separador (la línea horizontal si la usas) */
+.context-menu .separator .line {
+    -fx-border-color: #333333;
+    -fx-border-width: 0.5px;
+}
+.header {
+    -fx-border-color: #505050; 
+    -fx-border-width: 0 0 2 0; /* Solo dibuja la línea abajo */
+	-fx-border-style: solid;
+	-fx-background-color:#141414;
+}
+
+.sidebar-button {
+    -fx-border-color: #404040; 
+    -fx-border-width: 0 0 2 0; /* Solo dibuja la línea abajo */
+	-fx-border-style: solid;
+	-fx-background-color:#2e2e2e;
+
+}
+
+.sidebar-button:hover {
+	-fx-background-color:#7D7D7D;
+	-fx-cursor:hand;
+}
+
+.sidebar-exit-button {
+    -fx-border-color: #404040; 
+    -fx-border-width: 0 0 2 0; /* Solo dibuja la línea abajo */
+	-fx-border-style: solid;
+	-fx-background-color:#B81A1A;
+
+}
+
+.sidebar-exit-button:hover {
+
+	-fx-background-color:#E52222;
+	-fx-cursor:hand;
+}
+
+.sidebar-button-text{
+	-fx-font-size: 18px;
+	-fx-text-fill: #ffffff;
+	-fx-font-family: "System";
+	-fx-font-weight: bold;
+
+}
+
+#sidebar-button-marked{
+	-fx-background-color:#969696;
+}
+
+.sidebar{
+    -fx-border-color: #505050; 
+    -fx-border-width: 0 2 0 0; /* Solo dibuja la línea abajo */
+	-fx-border-style: solid;
+}
+
+.nombre-usuario {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+
+    /* apariencia tipo “título” */
+    -fx-padding: 2 0 2 0;
+    -fx-font-family: "System";
+}
+
+.titulo-center {
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #ffffff;
+
+    /* apariencia tipo “título” */
+    -fx-padding: 2 0 2 0;
+    -fx-font-family: "System";
+}
+
+.nombre-usuario-hbox{
+	-fx-background-color:#1F1F1F;
+	-fx-border-color: #505050; 
+	 -fx-border-width: 0 0 2 0; /* Solo dibuja la línea abajo */
+	-fx-border-style: solid;
+}
+
+.advertencia-borrado {
+    /* Color rojo intenso */
+    -fx-text-fill: #ff3333;
+    
+    /* Fuente especial, Negrita y Tamaño */
+    -fx-font-family: "Impact", "Segoe UI", sans-serif;
+    -fx-font-weight: bold;
+    -fx-font-size: 36px;
+    
+    /* Subrayado */
+    -fx-underline: true;
+    
+    /* Un toque de sombra para que resalte más (opcional) */
+    -fx-effect: dropshadow(gaussian, rgba(255, 0, 0, 0.3), 5, 0, 0, 1);
+    
+    /* Margen para que no pegue con otros elementos */
+    -fx-padding: 10px;
+}
+
+.checkbox-deletion{
+	-fx-text-fill: #ffffff;
+	-fx-font-weight: bold;
+	-fx-underline: true;
+
 }

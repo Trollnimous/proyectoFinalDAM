@@ -11,6 +11,8 @@ import database.exceptions.*;
 import inputs.InputUtils;
 import post.Post;
 import responses.Response;
+import session.exceptions.DuplicatePasswordException;
+import session.exceptions.FailedPasswordUpdateException;
 import session.exceptions.LoginFailedException;
 import session.exceptions.SignUpFailedException;
 import temporalConsoleMenus.SessionMenu;
@@ -24,7 +26,8 @@ import users.roles.Role;
 public class Session
 {
 	private final Scanner sc = new Scanner(System.in);
-	private User sessionUser;
+	//TODO: QUITAR ESTO , HACERLO PRIVADO, SOLO PARA PRUEBAS
+	public User sessionUser;
 	private UserDAO uDAO;
 	private PostDAO pDAO;
 	private PostPoolDAO ppDAO;
@@ -74,6 +77,12 @@ public class Session
 		SessionMenu.sayGoodbye();
 	}
 	
+	private void updateSessionBeginDate()
+	{
+		this.startDate = LocalDate.now();
+		this.startTime = LocalTime.now();
+	}
+	
 	private int userSession()
 	{
 		SessionMenu.printUserName(this.sessionUser.getUsername());
@@ -107,10 +116,10 @@ public class Session
 				this.seeResponsesToUsersPosts();
 				return 1;
 			case 6:
-				this.changeUserPassword();
+				this.legacyChangeUserPassword();
 				return 1;
 			case 7:
-				if(this.deleteUser(this.sessionUser))
+				if(this.legacyDeleteUser(this.sessionUser))
 				{
 					return 0;
 				}
@@ -172,10 +181,10 @@ public class Session
 		switch(choice)
 		{
 			case 1:
-				this.changeUserPassword();
+				this.legacyChangeUserPassword();
 				return 1;
 			case 2:
-				this.deleteUser(this.sessionUser);
+				this.legacyDeleteUser(this.sessionUser);
 				return 1;
 			case 0:
 				return 0;
@@ -280,7 +289,12 @@ public class Session
 		System.out.println();
 	}
 	
-	private boolean deleteUser(User sessionUser)
+	public boolean deleteUser()
+	{
+		return this.uDAO.delete(this.sessionUser.getID());
+	}
+	
+	private boolean legacyDeleteUser(User sessionUser)
 	{
 		
 		if(sessionUser.getRole() == Role.ADMIN)
@@ -308,7 +322,7 @@ public class Session
 		return false;		
 	}
 	
-	private void changeUserPassword()
+	private void legacyChangeUserPassword()
 	{
 		String currentPassword;
 		do {
@@ -329,6 +343,30 @@ public class Session
 		this.uDAO.updatePassword(this.sessionUser.getID(), User.createPasswordHash(newPassword));
 		newPassword = null;
 		System.out.println("\nPassword changed succesfully!\n");
+	}
+	
+	public void changeUserPassword(String oldPassword, String newPassword) throws FailedPasswordUpdateException, InvalidPasswordException, DuplicatePasswordException
+	{
+		if(!this.sessionUser.correctPassword(oldPassword))
+		{
+			throw new FailedPasswordUpdateException();
+		}
+		if(this.sessionUser.correctPassword(newPassword))
+		{
+			throw new DuplicatePasswordException();
+		}
+		if(!UserUtils.validPassword(newPassword))
+		{
+			throw new InvalidPasswordException();
+		}
+		try {
+			this.uDAO.updatePassword(this.sessionUser.getID(), User.createPasswordHash(newPassword));
+			this.sessionUser.setPassword(newPassword);
+		}
+		catch(Exception e)
+		{
+			throw new FailedPasswordUpdateException();
+		}
 	}
 	
 	private int legacyAttachUser()
@@ -366,14 +404,16 @@ public class Session
 	//Ends current session safely
 	public void endSession()
 	{
-		this.closeScanner();
+		this.sessionUser = null;
+		this.startDate = null;
+		this.startTime = null;
 	}
 	
 	//Makes user sign up
 	public void signUpUser(String email, String username, String password, String passwordConfirmation, String gender, LocalDate dateOfBirth, boolean acceptsResponseEmails, boolean acceptsManteinanceEmails) throws InvalidEmailException, InvalidUsernameException
 	,DuplicateUsernameException, DuplicateEmailException, InvalidPasswordException, FailedPasswordVerificationException, SignUpFailedException, InvalidDateOfBirthException, RejectedUserAgreementException, InvalidDateFormatException
 	{
-		if(email == null || username == null || password == null || passwordConfirmation == null || gender == null || dateOfBirth == null
+		if(email == null || username == null || password == null || passwordConfirmation == null || gender == null
 				|| !acceptsManteinanceEmails)
 		{
 			throw new RejectedUserAgreementException();
@@ -427,6 +467,7 @@ public class Session
 		try {
 			this.uDAO.insert(userToAttach);
 			this.sessionUser = userToAttach;
+			this.updateSessionBeginDate();
 		}
 		catch(SQLException | NullPointerException e)
 		{
@@ -517,8 +558,12 @@ public class Session
 	}
 	
 	//Logs in user in session
-	public void userLogin(String email, String password) throws LoginFailedException
+	public void userLogin(String email, String password) throws LoginFailedException, EmptyFieldsException
 	{
+		if(email == "" || password == "")
+		{
+			throw new EmptyFieldsException();
+		}
 		User userToLogin = null;
 		try
 		{
@@ -527,6 +572,7 @@ public class Session
 			{
 				this.sessionUser = userToLogin;
 				this.uDAO.updateLastLoginDate(this.sessionUser.getID());
+				this.updateSessionBeginDate();
 				this.updateLastLoginFromUser();
 			}
 			else
