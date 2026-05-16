@@ -4,8 +4,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import responses.Response;
 
@@ -18,9 +20,14 @@ public class ResponseDAO implements DAO<Response>
 	public boolean insert(Response response) {
 		boolean valid = false;
         String sql = "INSERT INTO responses (response_id, post_id, author_id, response_date, title, content) VALUES (?, ?, ?, ?, ?, ?) ;";
-
+        String sqlUpdate = "update users set has_new_responses = 1 where user_id in "
+        		+ "(select user_id from users where user_id in ("
+        		+ "select uploader_id from posts where post_id in "
+        		+ "(select post_id from responses where post_id = ?)));";
+        
         try (Connection conn = DatabaseConnection.getConexion(); 
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+        	 PreparedStatement pstmt2 = conn.prepareStatement(sqlUpdate)){
 
             pstmt.setString(1, response.getResponseID().toString());
             pstmt.setString(2, response.getPostID().toString());
@@ -30,8 +37,11 @@ public class ResponseDAO implements DAO<Response>
             pstmt.setString(5, response.getTitle());
             pstmt.setString(6, response.getContent());
             
+            pstmt2.setString(1, response.getPostID().toString());
+            
             // 4. EJECUTAR
             pstmt.executeUpdate(); // Este comando envía los datos a MySQL
+            pstmt2.executeUpdate();
             System.out.println("✅ Respuesta insertada correctamente en la BD.");
             valid = true;
 
@@ -163,7 +173,7 @@ public class ResponseDAO implements DAO<Response>
 		return listToReturn;
 	}
 	
-	public List<Response> listAllFromPost(UUID postID)
+	public List<Response> listAllFromPost(UUID postID) throws SQLException
 	{
 		List<Response> listToReturn = new LinkedList<Response>();
 		String sql = "select * from responses where post_id = ?;";
@@ -180,13 +190,28 @@ public class ResponseDAO implements DAO<Response>
 	                }            
 
 	            }
-	        } catch (SQLException e) {
-	            System.out.println("❌ Error al obtener lista: " + e.getMessage());
-	        } catch (NullPointerException e)
-	        {
-	        	System.out.println("❌ Error al obtener lista: " + e.getMessage());
 	        }
 		
 		return listToReturn;
+	}
+	
+	public Map<UUID, Integer> getAllResponseCounts() 
+	{
+	    Map<UUID, Integer> counts = new HashMap<>();
+	    String sql = "SELECT post_id, COUNT(*) as total FROM responses GROUP BY post_id";
+
+	    try (Connection conn = DatabaseConnection.getConexion();
+	         PreparedStatement pstmt = conn.prepareStatement(sql);
+	         ResultSet rs = pstmt.executeQuery()) {
+
+	        while (rs.next()) {
+	            UUID id = UUID.fromString(rs.getString("post_id"));
+	            int total = rs.getInt("total");
+	            counts.put(id, total);
+	        }
+	    } catch (SQLException e) {
+	        e.printStackTrace();
+	    }
+	    return counts;
 	}
 }

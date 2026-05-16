@@ -124,6 +124,41 @@ public class UserDAO implements DAO<User>
 		return userToReturn;
 		
 	}
+	
+	public boolean userHasNewResponses(UUID idToSearch)
+	{
+		boolean hasNewResponses = false;
+		String sql = "select has_new_responses from users where (user_id = ?);";
+
+        try (Connection conn = DatabaseConnection.getConexion(); 
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, idToSearch.toString());
+            
+            try (ResultSet rs = pstmt.executeQuery()) 
+            {
+                if (rs.next()) 
+                {
+                	hasNewResponses = rs.getBoolean("has_new_responses");
+                }            
+                else
+                {
+                	System.out.println("❌ El usuario no se ha encontrado en la BBDD");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("❌ Error al insertar: " + e.getMessage());
+        } catch (NullPointerException e)
+        {
+        	System.out.println("❌ Error al insertar: " + e.getMessage());
+        }
+        catch(Exception e)
+        {
+        	System.out.println("Ha petado");
+        }
+		return hasNewResponses;
+		
+	}
 
 	@Override
 	public List<User> listAll()
@@ -284,6 +319,7 @@ public class UserDAO implements DAO<User>
 	    }
 	    return false;
 	}
+	
 	
 	public boolean updatePassword(UUID userToUpdateID, String passwordHashUpdated) {
 	    String sql = "UPDATE users SET password_hash = ? where user_id = ?";

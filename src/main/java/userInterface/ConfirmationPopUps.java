@@ -35,7 +35,7 @@ public class ConfirmationPopUps
 	
 	public static boolean confirmCloseSession() {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        ImageView imageView = new ImageView(new Image(ConfirmationPopUps.class.getResource("/exitAlertImage.jpg").toExternalForm()));
+        ImageView imageView = new ImageView(new Image(ConfirmationPopUps.class.getResource("/informationImage.jpg").toExternalForm()));
         imageView.setFitWidth(PREF_IMG_SIZE);
         imageView.setFitHeight(PREF_IMG_SIZE);
         alert.setGraphic(imageView);
@@ -75,13 +75,73 @@ public class ConfirmationPopUps
 	
 	public static boolean userPasswordChangedConfirmationMessage() {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        ImageView imageView = new ImageView(new Image(ConfirmationPopUps.class.getResource("/informationImage.jpg").toExternalForm()));
+        ImageView imageView = new ImageView(new Image(ConfirmationPopUps.class.getResource("/confirmationImage.png").toExternalForm()));
         imageView.setFitWidth(PREF_IMG_SIZE);
         imageView.setFitHeight(PREF_IMG_SIZE);
         alert.setGraphic(imageView);
         alert.setTitle("Operación completada");
         alert.setHeaderText("");
         alert.setContentText("La contraseña se ha cambiado correctamente");
+
+        Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
+        alertStage.getIcons().add(new Image(ConfirmationPopUps.class.getResourceAsStream("/undertaleHeart.png")));
+        
+        DialogPane dialogPane = alert.getDialogPane();
+        dialogPane.getStylesheets().add(ConfirmationPopUps.class.getResource("/darkMode.css").toExternalForm());
+
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
+    }
+	
+	public static boolean postCreationConfirmationMessage() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        ImageView imageView = new ImageView(new Image(ConfirmationPopUps.class.getResource("/confirmationImage.png").toExternalForm()));
+        imageView.setFitWidth(PREF_IMG_SIZE);
+        imageView.setFitHeight(PREF_IMG_SIZE);
+        alert.setGraphic(imageView);
+        alert.setTitle("Operación completada");
+        alert.setHeaderText("");
+        alert.setContentText("El post se ha subido correctamente");
+
+        Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
+        alertStage.getIcons().add(new Image(ConfirmationPopUps.class.getResourceAsStream("/undertaleHeart.png")));
+        
+        DialogPane dialogPane = alert.getDialogPane();
+        dialogPane.getStylesheets().add(ConfirmationPopUps.class.getResource("/darkMode.css").toExternalForm());
+
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
+    }
+	
+	public static boolean responseCreationConfirmationMessage() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        ImageView imageView = new ImageView(new Image(ConfirmationPopUps.class.getResource("/confirmationImage.png").toExternalForm()));
+        imageView.setFitWidth(PREF_IMG_SIZE);
+        imageView.setFitHeight(PREF_IMG_SIZE);
+        alert.setGraphic(imageView);
+        alert.setTitle("Operación completada");
+        alert.setHeaderText("");
+        alert.setContentText("Se ha respondido al post correctamente");
+
+        Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
+        alertStage.getIcons().add(new Image(ConfirmationPopUps.class.getResourceAsStream("/undertaleHeart.png")));
+        
+        DialogPane dialogPane = alert.getDialogPane();
+        dialogPane.getStylesheets().add(ConfirmationPopUps.class.getResource("/darkMode.css").toExternalForm());
+
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
+    }
+	
+	public static boolean accountCreationConfirmationMessage() {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        ImageView imageView = new ImageView(new Image(ConfirmationPopUps.class.getResource("/confirmationImage.png").toExternalForm()));
+        imageView.setFitWidth(PREF_IMG_SIZE);
+        imageView.setFitHeight(PREF_IMG_SIZE);
+        alert.setGraphic(imageView);
+        alert.setTitle("Operación completada");
+        alert.setHeaderText("");
+        alert.setContentText("Cuenta creada correctamente");
 
         Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
         alertStage.getIcons().add(new Image(ConfirmationPopUps.class.getResourceAsStream("/undertaleHeart.png")));

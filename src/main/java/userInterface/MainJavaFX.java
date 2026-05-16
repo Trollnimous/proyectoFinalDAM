@@ -1,12 +1,20 @@
 package userInterface;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import appContext.AppContext;
 import database.exceptions.DuplicateEmailException;
 import database.exceptions.DuplicateUsernameException;
+import database.exceptions.EmptyPostPoolException;
+import database.exceptions.FailedPostReponsesFetchException;
 import database.exceptions.FailedUserDeletionException;
+import database.exceptions.FailedUserPostsFetchException;
 import javafx.application.*;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -18,10 +26,17 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 import javafx.stage.*;
+import post.Post;
+import post.exceptions.InvalidPostContentLengthException;
+import post.exceptions.InvalidPostTitleLengthException;
+import responses.Response;
 import session.Session;
 import session.exceptions.DuplicatePasswordException;
 import session.exceptions.FailedPasswordUpdateException;
+import session.exceptions.FailedPostToReadFetchException;
+import session.exceptions.FailedResponseCreationException;
 import session.exceptions.LoginFailedException;
+import session.exceptions.PostCreationFailedException;
 import session.exceptions.SignUpFailedException;
 import users.User;
 import users.exceptions.EmptyFieldsException;
@@ -70,10 +85,6 @@ public class MainJavaFX extends Application
 	private static final String DELETE_YOUR_ACCOUNT_BUTTON_TEXT = "Borrar cuenta";
 	private static final String EXIT_BUTTON_TEXT = "Cerrar sesión";
 
-	
-	
-	
-	private static final int PREFERRED_TEXT_FIELD_WIDTH = 200;
 	private static final int PREFERRED_FORM_WIDTH = 250;
 	private static final int MAX_FORM_WIDTH = 300;
 
@@ -84,6 +95,8 @@ public class MainJavaFX extends Application
 	private static final int SIDEBAR_BUTTON_PADDING_VALUE = 35;
 	private static final int SIDEBAR_WIDTH = 400;
 	private static final int PROFILE_PIC_SIZE = 64;
+	private static final String NOTIFICATION_TOOLTIP_TEXT = "Tienes nuevas respuestas";
+	private static final int NOTIFICATION_ICON_SIZE = 32;
 	private static final int PROFILE_PIC_SPACING = 25;
 	private static final int EXIT_ICON_SIZE = 32;
 	private static final int EXIT_ICON_SPACING = 15;
@@ -96,7 +109,7 @@ public class MainJavaFX extends Application
 	private static final String WRITE_POST_CONTENT_LABEL = "Mensaje";
 	private static final String WRITE_POST_CONTENT_TEXT_FIELD_TEXT = "Escribe aquí...";
 	private static final String SELECT_MAX_READINGS_LEFT_COMBO = "Selecciona las lecturas máximas";
-	private static final String POST_WANTS_RESPONSE_CHECKBOX_TEXT = "¿Quieres respuestas en el post?";
+	private static final String POST_WANTS_RESPONSE_CHECKBOX_TEXT = "¿Quieres respuestas en el post? (Opcional)";
 	private static final int TEXT_AREA_PREF_ROW_COUNT = 15;
 
 	private static final String ACCOUNT_DELETION_WARNING_LABEL = "AVISO: EL BORRADO DE LA CUENTA ES PERMANENTE";
@@ -111,7 +124,28 @@ public class MainJavaFX extends Application
 	private static final String NEW_PASSWORD_CONFIRMATION_PASSWORD_MODIFICATION_LABEL = "Repite tu nueva contraseña";
 	private static final String UPDATE_PASSWORD_PASSWORD_MODIFICATION_BUTTON = "Actualizar contraseña";
 
+	private static final String SEE_USER_POSTS_EMTPY_LIST_LABEL_TEXT = "No has subido ningún post";
+	private static final String SEE_USER_POSTS_EMTPY_LIST_HYPERLINK_TEXT = "Sube uno ahora";
+	private static final String SEE_USER_POSTS_GO_BACK_BUTTON = "Volver";
+	private static final String SEE_USER_POSTS_DATE_FORMAT = "dd/MM/yyyy";
 	
+	private static final int POST_WIDTH = 1000;
+	private static final int POST_TITLE_PADDING = 25;
+	private static final int POST_CONTENT_PADDING = 10;
+	private static final int POST_CONTENT_MIN_HEIGHT = 150;
+	private static final int POST_BOTTOM_PADDING = 15;	
+	private static final int POST_VBOX_SPACING = 20;
+	
+	private static final String READ_POST_EMPTY_POST_POOL_HYPERLINK_TEXT = "Llénala subiendo un post";
+	private static final String READ_POST_EMPTY_POST_POOL_LABEL_TEXT = "No hay posts para leer";
+	private static final String READ_POST_POST_DOESNT_WANT_RESPONSE = "Este post no quiere respuestas";
+	private static final String READ_POST_RESPOND_TO_THIS_POST_LABEL_TEXT = "¡Responde a este post!";
+	private static final String READ_POST_TEXT_AREA_PROMPT_TEXT = "Vaya movida colega...";
+	private static final String READ_POST_RESPONSE_CONFIRMATION_LABEL_TEXT = "Ya has respondido a este post";
+	private static final String READ_POST_RESPONSE_BUTTON_TEXT = "Mandar respuesta";
+
+	
+	private ImageView notifIcon;
 	private BorderPane root;
 	
 	public void showSignUpPage(Stage stage)
@@ -255,7 +289,7 @@ public class MainJavaFX extends Application
         });
         
         buttonSignUp.setOnAction(s -> {
-        	String emailSignUp = tFieldEmail.getText();
+        	String emailSignUp = tFieldEmail.getText().toLowerCase();
         	String usernameSignUp = tFieldUsername.getText();
         	String passwordSignUp = null;
         	if(pFieldPassword.isVisible())
@@ -293,6 +327,7 @@ public class MainJavaFX extends Application
     				AppContext.session.signUpUser(emailSignUp, usernameSignUp, passwordSignUp, passwordConfirmationSignUp
     						, genderSignUp, dateOfBirthSignUp, acceptsResponseEmailsSignUp, acceptsManteinanceEmailsSignUp);
     				this.showLoggedInPage(stage);
+    				ConfirmationPopUps.accountCreationConfirmationMessage();
             	}
             	catch(InvalidEmailException | InvalidUsernameException | DuplicateUsernameException| InvalidDateOfBirthException
     					|InvalidDateFormatException|RejectedUserAgreementException| DuplicateEmailException | InvalidPasswordException | FailedPasswordVerificationException | SignUpFailedException e)
@@ -352,22 +387,22 @@ public class MainJavaFX extends Application
         Hyperlink hlSingUp = new Hyperlink(CHOICE_SIGN_UP_HYPERLINK_TEXT);
         
         //Creacion del layout
-        VBox loginLayout = new VBox();
-        loginLayout.setAlignment(Pos.CENTER);
-        loginLayout.setSpacing(10);
-        loginLayout.setPrefWidth(PREFERRED_FORM_WIDTH);
-        loginLayout.setMaxWidth(MAX_FORM_WIDTH);
+        VBox singUpLayout = new VBox();
+        singUpLayout.setAlignment(Pos.CENTER);
+        singUpLayout.setSpacing(10);
+        singUpLayout.setPrefWidth(PREFERRED_FORM_WIDTH);
+        singUpLayout.setMaxWidth(MAX_FORM_WIDTH);
         
-        StackPane centerContainer = new StackPane(loginLayout);
+        StackPane centerContainer = new StackPane(singUpLayout);
         
-        loginLayout.getChildren().addAll(titleView, labelWriteYourEmail,tFieldEmail,labelWriteYourPassword,passwordLayoutBox,buttonLogIn,hlSingUp);
+        singUpLayout.getChildren().addAll(titleView, labelWriteYourEmail,tFieldEmail,labelWriteYourPassword,passwordLayoutBox,buttonLogIn,hlSingUp);
 
         root.setCenter(centerContainer);
         
         //Asignar comportamientos
         tFieldEmail.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) {
-            	String emailLogIn = tFieldEmail.getText();
+            	String emailLogIn = tFieldEmail.getText().toLowerCase();
             	String passwordLogIn = null;
             	if(pFieldPassword.isVisible())
             	{
@@ -391,11 +426,11 @@ public class MainJavaFX extends Application
             	}
             	catch(Exception e)
             	{
-            		ErrorHandler.showUnknownError();
+            		ErrorHandler.showError(e);
             	}
             	finally
             	{
-            		loginLayout.requestFocus();
+            		singUpLayout.requestFocus();
             		pFieldPassword.clear();
             	}
             }
@@ -403,7 +438,7 @@ public class MainJavaFX extends Application
         
         tFieldPassword.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) {
-            	String emailLogIn = tFieldEmail.getText();
+            	String emailLogIn = tFieldEmail.getText().toLowerCase();
             	String passwordLogIn = null;
             	if(pFieldPassword.isVisible())
             	{
@@ -431,7 +466,7 @@ public class MainJavaFX extends Application
             	}
             	finally
             	{
-            		loginLayout.requestFocus();
+            		singUpLayout.requestFocus();
             		pFieldPassword.clear();
             	}
             }
@@ -439,7 +474,7 @@ public class MainJavaFX extends Application
         
         pFieldPassword.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER) {
-            	String emailLogIn = tFieldEmail.getText();
+            	String emailLogIn = tFieldEmail.getText().toLowerCase();
             	String passwordLogIn = null;
             	if(pFieldPassword.isVisible())
             	{
@@ -467,7 +502,7 @@ public class MainJavaFX extends Application
             	}
             	finally
             	{
-            		loginLayout.requestFocus();
+            		singUpLayout.requestFocus();
             		pFieldPassword.clear();
             	}
             }
@@ -502,7 +537,7 @@ public class MainJavaFX extends Application
         });
         
         buttonLogIn.setOnAction(s -> {
-        	String emailLogIn = tFieldEmail.getText();
+        	String emailLogIn = tFieldEmail.getText().toLowerCase();
         	String passwordLogIn = null;
         	if(pFieldPassword.isVisible())
         	{
@@ -530,7 +565,7 @@ public class MainJavaFX extends Application
         	}
         	finally
         	{
-        		loginLayout.requestFocus();
+        		singUpLayout.requestFocus();
         		pFieldPassword.clear();
         	}
         });
@@ -538,6 +573,192 @@ public class MainJavaFX extends Application
         hlSingUp.setOnAction(e->{
         	this.showSignUpPage(stage);
         });
+	}
+	
+	public void getReadPostLogic(Stage stage)
+	{
+		Post postToRead = null;
+		try
+		{
+			postToRead = AppContext.session.getPostToRead();
+			this.showPostToRead(stage, postToRead);
+		}
+		catch(EmptyPostPoolException e)
+		{
+			Label emptyPostPoolLabel = new Label(READ_POST_EMPTY_POST_POOL_LABEL_TEXT);
+			emptyPostPoolLabel.setAlignment(Pos.CENTER);
+			emptyPostPoolLabel.setMaxWidth(Double.MAX_VALUE);
+			emptyPostPoolLabel.getStyleClass().add("titulo-center");
+			
+			Hyperlink hlPostNow = new Hyperlink(READ_POST_EMPTY_POST_POOL_HYPERLINK_TEXT);
+	        
+	        //Creacion del layout
+	        VBox emptyPostLayout = new VBox(emptyPostPoolLabel,hlPostNow);
+	        emptyPostLayout.setAlignment(Pos.CENTER);
+	        emptyPostLayout.setSpacing(10);
+	        emptyPostLayout.setPrefWidth(Double.MAX_VALUE);
+	        emptyPostLayout.setMaxWidth(Double.MAX_VALUE);
+	        
+			this.root.setCenter(emptyPostLayout);
+			
+			//Comportamiento
+			
+			hlPostNow.setOnAction(s->{				
+				this.showSidebarFirstButtonMarked(stage);
+				this.showCreatePostCenter(stage);
+			});
+		}
+		catch(FailedPostToReadFetchException e)
+		{
+			ErrorHandler.showError(e);
+		}
+		catch(Exception e)
+		{
+			ErrorHandler.showUnknownError();
+		}
+	}
+	
+	public void showPostToRead(Stage stage, Post postToRead)
+	{
+        DateTimeFormatter formatoFecha = DateTimeFormatter.ofPattern(SEE_USER_POSTS_DATE_FORMAT);
+
+		
+		Label title = new Label(postToRead.getTitle());
+		title.getStyleClass().add("post-title-text");
+		HBox titleHBox = new HBox(title);
+		titleHBox.setAlignment(Pos.CENTER_LEFT);
+		titleHBox.getStyleClass().add("post-title");
+		titleHBox.setPadding(new javafx.geometry.Insets(POST_TITLE_PADDING));
+		titleHBox.setMaxWidth(Double.MAX_VALUE);
+
+		
+		Label content = new Label(postToRead.getContent());
+		content.getStyleClass().add("post-content-text");
+		content.setAlignment(Pos.TOP_LEFT);
+		content.setMinHeight(POST_CONTENT_MIN_HEIGHT);
+		content.setWrapText(true);
+		HBox contentHBox = new HBox(content);
+		contentHBox.setAlignment(Pos.CENTER_LEFT);
+		contentHBox.getStyleClass().add("post-content");
+		contentHBox.setPadding(new javafx.geometry.Insets(POST_CONTENT_PADDING));
+		contentHBox.setMaxWidth(Double.MAX_VALUE);
+
+		
+		Label date = new Label(postToRead.getPublishDate().format(formatoFecha).toString());
+		date.getStyleClass().add("response-post-date-text");
+		HBox dateHBox = new HBox(date);
+		dateHBox.setAlignment(Pos.CENTER);
+		dateHBox.getStyleClass().add("response-post-date");
+		dateHBox.setPadding(new javafx.geometry.Insets(POST_BOTTOM_PADDING));	
+		dateHBox.setMaxWidth(POST_WIDTH/3);
+
+		
+		HBox spaceHBox = new HBox();
+		spaceHBox.setAlignment(Pos.CENTER);
+		spaceHBox.getStyleClass().add("response-post-space");
+		spaceHBox.setPadding(new javafx.geometry.Insets(POST_BOTTOM_PADDING));
+		spaceHBox.setMaxWidth(Double.MAX_VALUE);
+		
+		HBox.setHgrow(spaceHBox, Priority.ALWAYS);
+		HBox.setHgrow(dateHBox, Priority.ALWAYS);
+		HBox bottomPart = new HBox(dateHBox,spaceHBox);
+		bottomPart.setAlignment(Pos.CENTER);
+		bottomPart.setMaxWidth(Double.MAX_VALUE);
+		
+		VBox postLayout = new VBox(titleHBox,contentHBox,bottomPart);
+        postLayout.setAlignment(Pos.TOP_CENTER);
+        postLayout.setPrefWidth(POST_WIDTH);
+        postLayout.setMaxWidth(POST_WIDTH);
+        
+        
+        
+        
+        
+        VBox finalLayout = new VBox(postLayout);
+        finalLayout.setAlignment(Pos.TOP_CENTER);
+        finalLayout.setPrefWidth(Double.MAX_VALUE);
+        finalLayout.setMaxWidth(POST_WIDTH);
+        finalLayout.setSpacing(POST_VBOX_SPACING);
+        BorderPane.setMargin(finalLayout, new javafx.geometry.Insets(50, 0, 50, 0));
+                
+        
+        
+        
+        if(postToRead.wantsResponse())
+        {
+        	Label respondToPostLabel = new Label(READ_POST_RESPOND_TO_THIS_POST_LABEL_TEXT);
+			respondToPostLabel.setAlignment(Pos.CENTER);
+			respondToPostLabel.setMaxWidth(Double.MAX_VALUE);
+			respondToPostLabel.getStyleClass().add("titulo-center");
+			
+			TextArea writeRespondTextArea = new TextArea();
+			writeRespondTextArea.setPrefRowCount(TEXT_AREA_PREF_ROW_COUNT);
+			writeRespondTextArea.setPromptText(READ_POST_TEXT_AREA_PROMPT_TEXT);
+			Label currentCharsInTextArea = new Label("0/1000");
+			currentCharsInTextArea.setAlignment(Pos.CENTER_RIGHT);
+			currentCharsInTextArea.setMaxWidth(POST_WIDTH);
+			
+	        Button respondToPostButton = new Button(READ_POST_RESPONSE_BUTTON_TEXT);
+
+	        
+	        finalLayout.getChildren().add(respondToPostLabel);
+	        finalLayout.getChildren().add(writeRespondTextArea);
+	        finalLayout.getChildren().add(currentCharsInTextArea);
+	        finalLayout.getChildren().add(respondToPostButton);
+	        
+	        //Comportamientos
+	        writeRespondTextArea.textProperty().addListener((obs, oldValue, newValue) -> {
+		        currentCharsInTextArea.setText(String.format("%d/1000", newValue.length()));
+	        });
+		
+		
+	        respondToPostButton.setOnAction(s->{
+				String postContent = writeRespondTextArea.getText();
+				if(postContent == "")
+				{
+					ErrorHandler.showError("Rellena todos los campos obligatorios para continuar");
+				}
+				else
+				{
+					try
+					{
+						AppContext.session.createResponse(postToRead.getPostID(),postContent);
+						ConfirmationPopUps.responseCreationConfirmationMessage();
+						finalLayout.getChildren().remove(respondToPostButton);
+						finalLayout.getChildren().remove(respondToPostLabel);
+						finalLayout.getChildren().remove(writeRespondTextArea);
+						
+						Label postResonseConfirmationLabel = new Label(READ_POST_RESPONSE_CONFIRMATION_LABEL_TEXT);
+						postResonseConfirmationLabel.setAlignment(Pos.CENTER);
+						postResonseConfirmationLabel.setMaxWidth(Double.MAX_VALUE);
+						postResonseConfirmationLabel.getStyleClass().add("titulo-center");
+						finalLayout.getChildren().add(postResonseConfirmationLabel);
+						this.root.setCenter(finalLayout);
+					}
+					catch(InvalidPostContentLengthException | FailedResponseCreationException  e)
+					{
+						ErrorHandler.showError(e);
+					}
+					catch(Exception e) 
+					{
+						ErrorHandler.showUnknownError();
+					}
+				}
+	        });	
+		
+
+        }
+        else
+        {
+        	Label emptyPostPoolLabel = new Label(READ_POST_POST_DOESNT_WANT_RESPONSE);
+			emptyPostPoolLabel.setAlignment(Pos.CENTER);
+			emptyPostPoolLabel.setMaxWidth(Double.MAX_VALUE);
+			emptyPostPoolLabel.getStyleClass().add("titulo-center");
+			finalLayout.getChildren().add(emptyPostPoolLabel);
+        }
+        
+        
+        this.root.setCenter(finalLayout);
 	}
 	
 	public void showLoggedInPage(Stage stage)
@@ -582,6 +803,9 @@ public class MainJavaFX extends Application
 		
 		TextField writePostTitleTextField = new TextField();
 		writePostTitleTextField.setPromptText(WRITE_POST_TITLE_TEXT_FIELD_TEXT);
+		Label currentCharsInTextField = new Label("0/50");
+		currentCharsInTextField.setAlignment(Pos.CENTER_RIGHT);
+		currentCharsInTextField.setMaxWidth(Double.MAX_VALUE);
 		
 		Label writePostContentLabel = new Label(WRITE_POST_CONTENT_LABEL);
 		writePostContentLabel.getStyleClass().add("titulo-center");
@@ -591,10 +815,13 @@ public class MainJavaFX extends Application
 		TextArea writePostContentTextArea = new TextArea();
 		writePostContentTextArea.setPrefRowCount(TEXT_AREA_PREF_ROW_COUNT);
 		writePostContentTextArea.setPromptText(WRITE_POST_CONTENT_TEXT_FIELD_TEXT);
+		Label currentCharsInTextArea = new Label("0/2000");
+		currentCharsInTextArea.setAlignment(Pos.CENTER_RIGHT);
+		currentCharsInTextArea.setMaxWidth(Double.MAX_VALUE);
 		
 		Label selectMaxReadingLabel = new Label(SELECT_MAX_READINGS_LEFT_COMBO);
 		ComboBox<Integer> comboBoxMaxReadings = new ComboBox<Integer>();
-        comboBoxMaxReadings.getItems().addAll(1,2,3,4,5);
+        comboBoxMaxReadings.getItems().addAll(1,3,5,7,10);
 		Label checkBoxWantsResponseLabel = new Label(POST_WANTS_RESPONSE_CHECKBOX_TEXT);
         CheckBox checkBoxWantsResponse = new CheckBox(); 
         HBox.setMargin(checkBoxWantsResponseLabel, new Insets(0, 0, 0, 200));
@@ -605,17 +832,281 @@ public class MainJavaFX extends Application
         Button createPostButton = new Button(CREATE_POST_BUTTON_TEXT);
         
         
-		VBox createPostLayout = new VBox(writePostTitleLabel,writePostTitleTextField,writePostContentLabel,writePostContentTextArea,bottomLayout,createPostButton);
+		VBox createPostLayout = new VBox(writePostTitleLabel,writePostTitleTextField,currentCharsInTextField,writePostContentLabel,writePostContentTextArea,currentCharsInTextArea,bottomLayout,createPostButton);
 		createPostLayout.setAlignment(Pos.TOP_CENTER);
 		createPostLayout.setPadding(new javafx.geometry.Insets(CENTER_LAYOUT_PADDING));
 		createPostLayout.setSpacing(CENTER_LAYOUT_SPACING);
 		
+		//Comportamientos
+		writePostContentTextArea.textProperty().addListener((obs, oldValue, newValue) -> {
+		        currentCharsInTextArea.setText(String.format("%d/2000", newValue.length()));
+		});
+		
+		writePostTitleTextField.textProperty().addListener((obs, oldValue, newValue) -> {
+	        currentCharsInTextField.setText(String.format("%d/50", newValue.length()));
+		});
+		
+		createPostButton.setOnAction(s->{
+			String title = writePostTitleTextField.getText();
+			String content = writePostContentTextArea.getText();
+			if(title == "" || content == "" || comboBoxMaxReadings.getValue() == null)
+			{
+				ErrorHandler.showError("Rellena todos los campos obligatorios para continuar");
+			}
+			else
+			{
+				try
+				{
+					AppContext.session.createPost(title, content, comboBoxMaxReadings.getValue(), checkBoxWantsResponse.isSelected());
+					ConfirmationPopUps.postCreationConfirmationMessage();
+					writePostContentTextArea.clear();
+					writePostTitleTextField.clear();
+					checkBoxWantsResponse.setSelected(false);
+					comboBoxMaxReadings.setValue(null);
+					comboBoxMaxReadings.getSelectionModel().clearSelection();
+					currentCharsInTextField.setText("0/30");
+					currentCharsInTextArea.setText("0/2000");
+				}
+				catch(InvalidPostTitleLengthException | InvalidPostContentLengthException | PostCreationFailedException  e)
+				{
+					ErrorHandler.showError(e);
+				}
+				catch(Exception e) 
+				{
+					ErrorHandler.showUnknownError();
+				}
+			}
+			
+			
+		});		
 		this.root.setCenter(createPostLayout);
+		
+	}
+	
+	public void getUserPostsLogic(Stage stage)
+	{
+		
+		
+		List<Post> userPosts = null;
+		try
+		{
+			userPosts = AppContext.session.seeUserPosts();
+			
+		} catch (FailedUserPostsFetchException e)
+		{
+			ErrorHandler.showError(e);
+		}
+		if(userPosts.isEmpty())
+		{
+			Label emptyUserPostListLabel = new Label(SEE_USER_POSTS_EMTPY_LIST_LABEL_TEXT);
+			emptyUserPostListLabel.setAlignment(Pos.CENTER);
+			emptyUserPostListLabel.setMaxWidth(Double.MAX_VALUE);
+			emptyUserPostListLabel.getStyleClass().add("titulo-center");
+			
+			Hyperlink hlPostNow = new Hyperlink(SEE_USER_POSTS_EMTPY_LIST_HYPERLINK_TEXT);
+	        
+	        //Creacion del layout
+	        VBox emptyPostLayout = new VBox(emptyUserPostListLabel,hlPostNow);
+	        emptyPostLayout.setAlignment(Pos.CENTER);
+	        emptyPostLayout.setSpacing(10);
+	        emptyPostLayout.setPrefWidth(Double.MAX_VALUE);
+	        emptyPostLayout.setMaxWidth(Double.MAX_VALUE);
+	        
+			this.root.setCenter(emptyPostLayout);
+			
+			//Comportamiento
+			
+			hlPostNow.setOnAction(s->{				
+				this.showSidebarFirstButtonMarked(stage);
+				this.showCreatePostCenter(stage);
+			});
+		}
+		else
+		{
+	        Map<UUID, Integer> numberOfResponsesMap = AppContext.session.getResponsesFromPost();
+			showUserPostsCenter(stage,userPosts,numberOfResponsesMap);
+		}
+		
+	}
+	
+	public void showUserPostsCenter(Stage stage, List<Post> userPosts, Map<UUID, Integer> numberOfResponsesMap)
+	{
+		this.manageNotificationIcon();
+		userPosts.sort(new Comparator<Post>()
+				{
+					@Override
+					public int compare(Post o1, Post o2)
+					{
+						return -o1.getPublishDate().compareTo(o2.getPublishDate());
+					}			
+				});{
+			
+		}
+		
+		VBox postsLayout = new VBox();
+        postsLayout.setAlignment(Pos.CENTER);
+        postsLayout.setPrefWidth(Double.MAX_VALUE);
+        postsLayout.setMaxWidth(Double.MAX_VALUE);
+        postsLayout.setSpacing(POST_VBOX_SPACING);
+        BorderPane.setMargin(postsLayout, new javafx.geometry.Insets(50, 0, 50, 0));
+        
+        DateTimeFormatter formatoFecha = DateTimeFormatter.ofPattern(SEE_USER_POSTS_DATE_FORMAT);
+        for(Post p : userPosts)
+        {
+        	//Estructura de un post
+        	
+        	Label title = new Label(p.getTitle());
+    		title.getStyleClass().add("post-title-text");
+    		HBox titleHBox = new HBox(title);
+    		titleHBox.setAlignment(Pos.CENTER_LEFT);
+    		titleHBox.getStyleClass().add("post-title");
+    		titleHBox.setPadding(new javafx.geometry.Insets(POST_TITLE_PADDING));
+    		titleHBox.setMaxWidth(Double.MAX_VALUE);
+
+    		
+    		Label content = new Label(p.getContent());
+    		content.getStyleClass().add("post-content-text");
+    		content.setAlignment(Pos.TOP_LEFT);
+    		content.setMinHeight(POST_CONTENT_MIN_HEIGHT);
+    		content.setWrapText(true);
+    		//Aquí y SOLO AQUI (ver todos tus posts) ponemos un estándar de altura para el contenido del post
+    		content.setMaxHeight(12 * 16);
+    		content.setMinHeight(12 * 16); 
+    		content.setPrefHeight(12 * 16);
+    		HBox contentHBox = new HBox(content);
+    		contentHBox.setAlignment(Pos.CENTER_LEFT);
+    		contentHBox.getStyleClass().add("post-content");
+    		contentHBox.setPadding(new javafx.geometry.Insets(POST_CONTENT_PADDING));
+    		contentHBox.setMaxWidth(Double.MAX_VALUE);
+    		HBox.setHgrow(content, Priority.ALWAYS);
+
+    		
+    		Label date = new Label(p.getPublishDate().format(formatoFecha).toString());
+    		date.getStyleClass().add("post-date-text");
+    		HBox dateHBox = new HBox(date);
+    		dateHBox.setAlignment(Pos.CENTER);
+    		dateHBox.getStyleClass().add("post-date");
+    		dateHBox.setPadding(new javafx.geometry.Insets(POST_BOTTOM_PADDING));		
+    		
+    		Label numberOfResponses = new Label(String.format("Numero de respuestas: %d", numberOfResponsesMap.getOrDefault(p.getPostID(), 0)));
+    		numberOfResponses.getStyleClass().add("post-nResponses-text");
+    		HBox numberOfResponsesHBox = new HBox(numberOfResponses);
+    		numberOfResponsesHBox.setAlignment(Pos.CENTER);
+    		numberOfResponsesHBox.getStyleClass().add("post-nResponses");
+    		numberOfResponsesHBox.setPadding(new javafx.geometry.Insets(POST_BOTTOM_PADDING));
+    		
+    		Label seeResponsesLabel = new Label("Ver respuestas");
+    		seeResponsesLabel.getStyleClass().add("post-seeResponses-text");
+    		HBox seeResponsesHBox = new HBox(seeResponsesLabel);
+    		seeResponsesHBox.setAlignment(Pos.CENTER);
+    		seeResponsesHBox.getStyleClass().add("post-seeResponses");
+    		seeResponsesHBox.setPadding(new javafx.geometry.Insets(POST_BOTTOM_PADDING));
+    		
+    		HBox.setHgrow(dateHBox, Priority.ALWAYS);
+    		HBox.setHgrow(numberOfResponsesHBox, Priority.ALWAYS);
+    		HBox.setHgrow(seeResponsesHBox, Priority.ALWAYS);
+    		HBox bottomPart = new HBox(dateHBox,numberOfResponsesHBox,seeResponsesHBox);
+    		bottomPart.setAlignment(Pos.CENTER);
+    		bottomPart.setMaxWidth(Double.MAX_VALUE);
+    		
+    		VBox postLayout = new VBox(titleHBox,contentHBox,bottomPart);
+            postLayout.setAlignment(Pos.CENTER);
+            postLayout.setPrefWidth(POST_WIDTH);
+            postLayout.setMaxWidth(POST_WIDTH);
+            
+            //Comportamiento
+            seeResponsesHBox.setOnMouseClicked(s->{
+            	List<Response> postResponses = null;
+                try
+        		{
+        			postResponses = AppContext.session.seePostResponses(p.getPostID());
+        		} 
+                catch (FailedPostReponsesFetchException e)
+        		{
+        			ErrorHandler.showError(e);
+        		}
+                if(postResponses != null)
+                {
+                	this.showRepsonseToPostCenter(stage, userPosts,postResponses,numberOfResponsesMap,p);
+                }
+            });
+            
+            postsLayout.getChildren().add(postLayout);
+        }
+       
+		this.root.setCenter(postsLayout);
+	}
+	
+	public void showRepsonseToPostCenter(Stage stage, List<Post> userPosts,List<Response> postResponses,Map<UUID, Integer> numberOfResponsesMap,  Post post)
+	{		
+		Label title = new Label(post.getTitle());
+		title.getStyleClass().add("post-title-text");
+		HBox titleHBox = new HBox(title);
+		titleHBox.setAlignment(Pos.CENTER_LEFT);
+		titleHBox.getStyleClass().add("post-title");
+		titleHBox.setPadding(new javafx.geometry.Insets(POST_TITLE_PADDING));
+		titleHBox.setMaxWidth(Double.MAX_VALUE);
+		
+		Label content = new Label(post.getContent());
+		content.getStyleClass().add("post-content-text");
+		content.setAlignment(Pos.TOP_LEFT);
+		content.setMinHeight(POST_CONTENT_MIN_HEIGHT);
+		content.setWrapText(true);
+		HBox contentHBox = new HBox(content);
+		contentHBox.setAlignment(Pos.CENTER_LEFT);
+		contentHBox.getStyleClass().add("post-content");
+		contentHBox.setPadding(new javafx.geometry.Insets(POST_CONTENT_PADDING));
+		contentHBox.setMaxWidth(Double.MAX_VALUE);
+	
+		VBox postLayout = new VBox(titleHBox,contentHBox);
+        postLayout.setAlignment(Pos.CENTER);
+        postLayout.setPrefWidth(POST_WIDTH);
+        postLayout.setMaxWidth(POST_WIDTH);
+		
+        
+        
+        VBox finalLayout = new VBox(postLayout);
+        finalLayout.setAlignment(Pos.TOP_CENTER);
+        finalLayout.setPrefWidth(Double.MAX_VALUE);
+        finalLayout.setMaxWidth(Double.MAX_VALUE);
+        BorderPane.setMargin(finalLayout, new javafx.geometry.Insets(50, 0, 0, 0));
+        
+        
+        
+        
+        for(Response r : postResponses)
+        {
+        	Label responseText = new Label(r.getContent());
+    		responseText.getStyleClass().add("post-response-text");
+    		responseText.setAlignment(Pos.TOP_RIGHT);
+    		HBox responseHBox = new HBox(responseText);
+    		responseHBox.setAlignment(Pos.CENTER_RIGHT);
+    		responseHBox.getStyleClass().add("post-response");
+    		responseHBox.setPadding(new javafx.geometry.Insets(POST_CONTENT_PADDING));
+    		responseHBox.setMaxWidth(POST_WIDTH);
+    		
+    		finalLayout.getChildren().add(responseHBox);
+        }
+        
+        Region spacer = new Region();
+        spacer.setPrefHeight(30);
+        finalLayout.getChildren().add(spacer);
+        
+        Button goBackButton = new Button(SEE_USER_POSTS_GO_BACK_BUTTON);
+        goBackButton.setAlignment(Pos.CENTER_LEFT);
+        finalLayout.getChildren().add(goBackButton);
+        
+        //Comportamiento
+        
+        goBackButton.setOnAction(s->{
+        	this.showUserPostsCenter(stage, userPosts, numberOfResponsesMap);
+        });
+        
+        this.root.setCenter(finalLayout);
 	}
 	
 	public void showDeleteAccountCenter(Stage stage)
-	{
-		
+	{		
 		Label accountDeletionWarning = new Label(ACCOUNT_DELETION_WARNING_LABEL);
 		accountDeletionWarning.getStyleClass().add("advertencia-borrado");
 		accountDeletionWarning.setMaxWidth(Double.MAX_VALUE);
@@ -700,7 +1191,7 @@ public class MainJavaFX extends Application
         });
 		
 		deleteAccountButton.setOnAction(s->{
-			String emailToCheck = writeYourEmailTextField.getText();
+			String emailToCheck = writeYourEmailTextField.getText().toLowerCase();
 			String usernameToCheck = writeYourUsernameTextField.getText();
 			String passwordToCheck = null;
 			if(pFieldPassword.isVisible())
@@ -974,12 +1465,12 @@ public class MainJavaFX extends Application
         Scene escena = new Scene(scrollRoot, 400, 200);
         escena.getStylesheets().add(getClass().getResource("/darkMode.css").toExternalForm());
         
-        //this.showLoginPage(stage);
+        this.showLoginPage(stage);
         
         //Esto te pone directamente como un usuario de prueba
 
-		AppContext.session.sessionUser = new User("prueba@prueba.net","Password123@","Usuario Prueba",Gender.MALE,LocalDate.now(),true,true);
-        this.showUserPage(stage);
+		//AppContext.session.sessionUser = new User("prueba@prueba.net","Password123@","Usuario Prueba",Gender.MALE,LocalDate.now(),true,true);
+        //this.showUserPage(stage);
         
         
         stage.setTitle("Aplicacion Proyecto");
@@ -1001,6 +1492,7 @@ public class MainJavaFX extends Application
 			}
         	else
         	{
+				AppContext.session.endSession();
         		Platform.exit();
 				System.exit(0);
         	}
@@ -1018,7 +1510,15 @@ public class MainJavaFX extends Application
     			userProfilePictureView.setFitHeight(PROFILE_PIC_SIZE);
     			Circle clip = new Circle(PROFILE_PIC_SIZE/2, PROFILE_PIC_SIZE/2, PROFILE_PIC_SIZE/2);
     			userProfilePictureView.setClip(clip);
-    			HBox userButton = new HBox(userProfilePictureView,welcomeLabel);
+    			Image notificationImage = new Image(MainJavaFX.class.getResourceAsStream("/notificationIcon.png"));	
+    			ImageView notificationView = new ImageView(notificationImage);
+    			notificationView.setFitHeight(NOTIFICATION_ICON_SIZE);
+    			notificationView.setFitWidth(NOTIFICATION_ICON_SIZE);
+    			Tooltip mouseHoverText = new Tooltip(NOTIFICATION_TOOLTIP_TEXT); 
+    			Tooltip.install(notificationView, mouseHoverText);
+    			this.notifIcon = notificationView;
+    			this.manageNotificationIcon();
+    			HBox userButton = new HBox(userProfilePictureView,welcomeLabel,notificationView);
     			userButton.setSpacing(PROFILE_PIC_SPACING);
     			userButton.setPadding(new javafx.geometry.Insets(SIDEBAR_BUTTON_PADDING_VALUE));
     			userButton.getStyleClass().add("nombre-usuario-hbox");
@@ -1100,7 +1600,30 @@ public class MainJavaFX extends Application
     				changePasswordButton.setId(null);
     				changeProfilePictureButton.setId(null);
     				deleteYourAccountButton.setId(null);
+        			this.manageNotificationIcon();
     				this.showCreatePostCenter(stage);
+    			});
+    			
+    			readPostButton.setOnMouseClicked(s->{
+    				createPostButton.setId(null);
+    				readPostButton.setId("sidebar-button-marked");
+    				seeYourPostsButton.setId(null);
+    				changePasswordButton.setId(null);
+    				changeProfilePictureButton.setId(null);
+    				deleteYourAccountButton.setId(null);
+        			this.manageNotificationIcon();
+    				this.getReadPostLogic(stage);
+    			});
+    			
+    			seeYourPostsButton.setOnMouseClicked(s->{
+    				createPostButton.setId(null);
+    				readPostButton.setId(null);
+    				seeYourPostsButton.setId("sidebar-button-marked");
+    				changePasswordButton.setId(null);
+    				changeProfilePictureButton.setId(null);
+    				deleteYourAccountButton.setId(null);
+        			this.manageNotificationIcon();
+    				this.getUserPostsLogic(stage);
     			});
     			
     			changePasswordButton.setOnMouseClicked(s->{
@@ -1110,7 +1633,12 @@ public class MainJavaFX extends Application
     				changePasswordButton.setId("sidebar-button-marked");
     				changeProfilePictureButton.setId(null);
     				deleteYourAccountButton.setId(null);
+        			this.manageNotificationIcon();
     				this.showUpdatePasswordCenter(stage);
+    			});
+    			
+    			changeProfilePictureButton.setOnMouseClicked(s->{
+    				ErrorHandler.showError("Esto no está programado porque es muy difícil");
     			});
     			
     			deleteYourAccountButton.setOnMouseClicked(s->{
@@ -1120,6 +1648,7 @@ public class MainJavaFX extends Application
     				changePasswordButton.setId(null);
     				changeProfilePictureButton.setId(null);
     				deleteYourAccountButton.setId("sidebar-button-marked");
+        			this.manageNotificationIcon();
     				this.showDeleteAccountCenter(stage);
     			});
     			
@@ -1131,6 +1660,192 @@ public class MainJavaFX extends Application
     				}
     			});
 
+    }
+    
+    //Guarrada legendaria, pero me da igual
+    public void showSidebarFirstButtonMarked(Stage stage)
+    {
+    	//Foto de usuario y nombre
+    			Label welcomeLabel = new Label(AppContext.session.getUser().getUsername());
+    			welcomeLabel.getStyleClass().add("nombre-usuario");
+    			Image userImage = new Image(MainJavaFX.class.getResourceAsStream("/defaultUserIcon.jpeg"));	
+    			ImageView userProfilePictureView = new ImageView(userImage);
+    			userProfilePictureView.setFitWidth(PROFILE_PIC_SIZE);
+    			userProfilePictureView.setFitHeight(PROFILE_PIC_SIZE);
+    			Circle clip = new Circle(PROFILE_PIC_SIZE/2, PROFILE_PIC_SIZE/2, PROFILE_PIC_SIZE/2);
+    			userProfilePictureView.setClip(clip);
+    			Image notificationImage = new Image(MainJavaFX.class.getResourceAsStream("/notificationIcon.png"));	
+    			ImageView notificationView = new ImageView(notificationImage);
+    			notificationView.setFitHeight(NOTIFICATION_ICON_SIZE);
+    			notificationView.setFitWidth(NOTIFICATION_ICON_SIZE);
+    			Tooltip mouseHoverText = new Tooltip(NOTIFICATION_TOOLTIP_TEXT); 
+    			Tooltip.install(notificationView, mouseHoverText);
+    			this.notifIcon = notificationView;
+    			this.manageNotificationIcon();
+    			HBox userButton = new HBox(userProfilePictureView,welcomeLabel,notificationView);
+    			userButton.setSpacing(PROFILE_PIC_SPACING);
+    			userButton.setPadding(new javafx.geometry.Insets(SIDEBAR_BUTTON_PADDING_VALUE));
+    			userButton.getStyleClass().add("nombre-usuario-hbox");
+    			userButton.setAlignment(Pos.CENTER_LEFT);
+    			
+    			//Botón crear post
+    			Label createPostLabel = new Label(CREATE_POST_BUTTON_TEXT);
+    			createPostLabel.getStyleClass().add("sidebar-button-text");
+    			HBox createPostButton = new HBox(createPostLabel);
+    			createPostButton.setAlignment(Pos.CENTER);
+    			createPostButton.getStyleClass().add("sidebar-button");
+    			createPostButton.setPadding(new javafx.geometry.Insets(SIDEBAR_BUTTON_PADDING_VALUE));
+				createPostButton.setId("sidebar-button-marked");
+    			
+    			//Leer post
+    			Label readPostLabel = new Label(READ_POST_BUTTON_TEXT);
+    			readPostLabel.getStyleClass().add("sidebar-button-text");
+    			HBox readPostButton = new HBox(readPostLabel);
+    			readPostButton.setAlignment(Pos.CENTER);
+    			readPostButton.getStyleClass().add("sidebar-button");
+    			readPostButton.setPadding(new javafx.geometry.Insets(SIDEBAR_BUTTON_PADDING_VALUE));
+    			
+    			//Ver tus posts
+    			Label seeYourPostsLabel = new Label(SEE_YOUR_POSTS_BUTTON_TEXT);
+    			seeYourPostsLabel.getStyleClass().add("sidebar-button-text");
+    			HBox seeYourPostsButton = new HBox(seeYourPostsLabel);
+    			seeYourPostsButton.setAlignment(Pos.CENTER);
+    			seeYourPostsButton.getStyleClass().add("sidebar-button");
+    			seeYourPostsButton.setPadding(new javafx.geometry.Insets(SIDEBAR_BUTTON_PADDING_VALUE));
+    			
+    			//Cambiar contraseña
+    			Label changePasswordLabel = new Label(CHANGE_YOUR_PASSWORD_BUTTON_TEXT);
+    			changePasswordLabel.getStyleClass().add("sidebar-button-text");
+    			HBox changePasswordButton = new HBox(changePasswordLabel);
+    			changePasswordButton.setAlignment(Pos.CENTER);
+    			changePasswordButton.getStyleClass().add("sidebar-button");
+    			changePasswordButton.setPadding(new javafx.geometry.Insets(SIDEBAR_BUTTON_PADDING_VALUE));
+    			
+    			//Cambiar contraseña
+    			Label changeProfilePictureLabel = new Label(CHANGE_YOUR_PROFILE_PICTURE_BUTTON_TEXT);
+    			changeProfilePictureLabel.getStyleClass().add("sidebar-button-text");
+    			HBox changeProfilePictureButton = new HBox(changeProfilePictureLabel);
+    			changeProfilePictureButton.setAlignment(Pos.CENTER);
+    			changeProfilePictureButton.getStyleClass().add("sidebar-button");
+    			changeProfilePictureButton.setPadding(new javafx.geometry.Insets(SIDEBAR_BUTTON_PADDING_VALUE));
+    			
+    			//Borrar cuenta
+    			Label deleteYourAccountLabel = new Label(DELETE_YOUR_ACCOUNT_BUTTON_TEXT);
+    			deleteYourAccountLabel.getStyleClass().add("sidebar-button-text");
+    			HBox deleteYourAccountButton = new HBox(deleteYourAccountLabel);
+    			deleteYourAccountButton.setAlignment(Pos.CENTER);
+    			deleteYourAccountButton.getStyleClass().add("sidebar-button");
+    			deleteYourAccountButton.setPadding(new javafx.geometry.Insets(SIDEBAR_BUTTON_PADDING_VALUE));
+    			
+    			//Salir
+    			Label exitLabel = new Label(EXIT_BUTTON_TEXT);
+    			exitLabel.getStyleClass().add("sidebar-button-text");
+    			Image exitImage = new Image(MainJavaFX.class.getResourceAsStream("/exitIcon.png"));	
+    			ImageView exitView = new ImageView(exitImage);
+    			exitView.setFitWidth(EXIT_ICON_SIZE);
+    			exitView.setFitHeight(EXIT_ICON_SIZE);
+    			HBox exitButton = new HBox(exitLabel,exitView);
+    			exitButton.setSpacing(EXIT_ICON_SPACING);
+    			exitButton.setAlignment(Pos.CENTER);
+    			exitButton.getStyleClass().add("sidebar-exit-button");
+    			exitButton.setPadding(new javafx.geometry.Insets(SIDEBAR_BUTTON_PADDING_VALUE));
+
+    			//Barra lateral
+    			VBox sidebar = new VBox(userButton,createPostButton,readPostButton,seeYourPostsButton,changePasswordButton,changeProfilePictureButton, deleteYourAccountButton,exitButton);
+    			sidebar.getStyleClass().add("sidebar");
+    			sidebar.setPrefWidth(SIDEBAR_WIDTH);
+    			
+    			this.root.setLeft(sidebar);
+    			
+    			//Comportamientos
+    			createPostButton.setOnMouseClicked(s->{
+    				createPostButton.setId("sidebar-button-marked");
+    				readPostButton.setId(null);
+    				seeYourPostsButton.setId(null);
+    				changePasswordButton.setId(null);
+    				changeProfilePictureButton.setId(null);
+    				deleteYourAccountButton.setId(null);
+    				this.manageNotificationIcon();
+    				this.showCreatePostCenter(stage);
+    			});
+    			
+    			readPostButton.setOnMouseClicked(s->{
+    				createPostButton.setId(null);
+    				readPostButton.setId("sidebar-button-marked");
+    				seeYourPostsButton.setId(null);
+    				changePasswordButton.setId(null);
+    				changeProfilePictureButton.setId(null);
+    				deleteYourAccountButton.setId(null);
+    				this.manageNotificationIcon();
+    				this.getReadPostLogic(stage);
+    			});
+    			
+    			seeYourPostsButton.setOnMouseClicked(s->{
+    				createPostButton.setId(null);
+    				readPostButton.setId(null);
+    				seeYourPostsButton.setId("sidebar-button-marked");
+    				changePasswordButton.setId(null);
+    				changeProfilePictureButton.setId(null);
+    				deleteYourAccountButton.setId(null);
+    				this.manageNotificationIcon();
+    				this.getUserPostsLogic(stage);
+    			});
+    			
+    			changePasswordButton.setOnMouseClicked(s->{
+    				createPostButton.setId(null);
+    				readPostButton.setId(null);
+    				seeYourPostsButton.setId(null);
+    				changePasswordButton.setId("sidebar-button-marked");
+    				changeProfilePictureButton.setId(null);
+    				deleteYourAccountButton.setId(null);
+    				this.manageNotificationIcon();
+    				this.showUpdatePasswordCenter(stage);
+    			});
+    			
+    			changeProfilePictureButton.setOnMouseClicked(s->{
+    				this.manageNotificationIcon();
+    				ErrorHandler.showError("Esto no está programado porque es muy difícil");
+    			});
+    			
+    			deleteYourAccountButton.setOnMouseClicked(s->{
+    				createPostButton.setId(null);
+    				readPostButton.setId(null);
+    				seeYourPostsButton.setId(null);
+    				changePasswordButton.setId(null);
+    				changeProfilePictureButton.setId(null);
+    				deleteYourAccountButton.setId("sidebar-button-marked");
+    				this.manageNotificationIcon();
+    				this.showDeleteAccountCenter(stage);
+    			});
+    			
+    			exitButton.setOnMouseClicked(s->{
+    				this.manageNotificationIcon();
+    				if(ConfirmationPopUps.confirmCloseSession())
+    				{
+    					AppContext.session.endSession();
+    					this.showLoginPage(stage);
+    				}
+    			});
+
+    }
+    
+    public void manageNotificationIcon()
+    {
+    	if(AppContext.session.userHasNewResponses())
+    	{  		
+    		/*this.notifIcon.setFitHeight(NOTIFICATION_ICON_SIZE);
+			this.notifIcon.setFitWidth(NOTIFICATION_ICON_SIZE);
+			Tooltip mouseHoverText = new Tooltip(NOTIFICATION_TOOLTIP_TEXT); 
+			Tooltip.install(this.notifIcon, mouseHoverText);*/
+			this.notifIcon.setVisible(true);
+    		this.notifIcon.setManaged(true);
+    		System.out.println("esto está en true");
+    	}
+    	else
+    	{
+    		this.notifIcon.setVisible(false);
+    		this.notifIcon.setManaged(false);
+    	}
     }
     
     public static void main(String[] args) {

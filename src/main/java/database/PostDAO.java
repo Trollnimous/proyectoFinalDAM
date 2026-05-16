@@ -8,13 +8,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import post.Post;
+import session.exceptions.PostCreationFailedException;
+
 import java.sql.Date;
 
 public class PostDAO implements DAO<Post>
 {
 	//Usar SOLO PARA CREAR UN NUEVO POST
 	@Override
-	public boolean insert(Post post) {
+	public boolean insert(Post post) throws PostCreationFailedException {
 		boolean valid = false;
         String sql = "INSERT INTO posts (post_id, uploader_id, title, content, likes, publish_date, max_readings, response_email, wants_response, awaits_moderation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ;";
 
@@ -44,6 +46,10 @@ public class PostDAO implements DAO<Post>
         } catch (NullPointerException e)
         {
         	System.out.println("❌ Error al insertar: " + e.getMessage());
+        }
+        if(!valid)
+        {
+        	throw new PostCreationFailedException();
         }
         return valid;
     }
@@ -81,13 +87,13 @@ public class PostDAO implements DAO<Post>
 	}
 
 	@Override
-	public Post searchById(UUID idToSearch)
+	public Post searchById(UUID idToSearch) throws SQLException
 	{
 		Post postToReturn = null;
         String sql = "select * from posts where (post_id = ?);";
 
         try (Connection conn = DatabaseConnection.getConexion(); 
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        		 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, idToSearch.toString());
             
@@ -103,11 +109,6 @@ public class PostDAO implements DAO<Post>
                 	System.out.println("❌ El post no se ha encontrado en la BBDD");
                 }
             }
-        } catch (SQLException e) {
-            System.out.println("❌ Error al insertar: " + e.getMessage());
-        } catch (NullPointerException e)
-        {
-        	System.out.println("❌ Error al insertar: " + e.getMessage());
         }
 		return postToReturn;
 		
@@ -140,15 +141,18 @@ public class PostDAO implements DAO<Post>
 		return listToReturn;
 	}
 	
-	public List<Post> listAll(UUID uploaderID)
+	public List<Post> listAll(UUID uploaderID) throws SQLException, NullPointerException
 	{
 		List<Post> listToReturn = new LinkedList<Post>();
 		String sql = "select * from posts where uploader_id = ?;";
+		String sqlUpdate = "UPDATE users set has_new_responses = 0 where user_id = ?;";
 		
 		try (Connection conn = DatabaseConnection.getConexion(); 
-	             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+	         PreparedStatement pstmt = conn.prepareStatement(sql);
+		     PreparedStatement pstmt2 = conn.prepareStatement(sqlUpdate)) {
 
 				pstmt.setString(1, uploaderID.toString());
+				pstmt2.setString(1, uploaderID.toString());
 	            try (ResultSet rs = pstmt.executeQuery()) 
 	            {
 	                while(rs.next()) 
@@ -157,12 +161,15 @@ public class PostDAO implements DAO<Post>
 	                }            
 
 	            }
-	        } catch (SQLException e) {
-	            System.out.println("❌ Error al obtener lista: " + e.getMessage());
-	        } catch (NullPointerException e)
-	        {
-	        	System.out.println("❌ Error al obtener lista: " + e.getMessage());
-	        }
+	            try
+	            {
+					pstmt2.executeUpdate();
+	            }
+	            catch(Exception e)
+	            {
+	            	System.out.println("No se ha podido poner en falso hasNewResponses");
+	            }
+	        } 
 		
 		return listToReturn;
 	}

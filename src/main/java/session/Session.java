@@ -4,16 +4,24 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.UUID;
 import database.*;
 import database.exceptions.*;
 import inputs.InputUtils;
 import post.Post;
+import post.PostUtils;
+import post.exceptions.InvalidPostContentLengthException;
+import post.exceptions.InvalidPostTitleLengthException;
 import responses.Response;
+import responses.ResponseUtils;
 import session.exceptions.DuplicatePasswordException;
 import session.exceptions.FailedPasswordUpdateException;
+import session.exceptions.FailedPostToReadFetchException;
+import session.exceptions.FailedResponseCreationException;
 import session.exceptions.LoginFailedException;
+import session.exceptions.PostCreationFailedException;
 import session.exceptions.SignUpFailedException;
 import temporalConsoleMenus.SessionMenu;
 import userInterface.ErrorHandler;
@@ -26,8 +34,8 @@ import users.roles.Role;
 public class Session
 {
 	private final Scanner sc = new Scanner(System.in);
-	//TODO: QUITAR ESTO , HACERLO PRIVADO, SOLO PARA PRUEBAS
-	public User sessionUser;
+
+	private User sessionUser;
 	private UserDAO uDAO;
 	private PostDAO pDAO;
 	private PostPoolDAO ppDAO;
@@ -46,7 +54,12 @@ public class Session
 		this.sessionUser = null;
 	}
 	
-	public void legacyStartSession()
+	public boolean userHasNewResponses()
+	{
+		return this.uDAO.userHasNewResponses(this.sessionUser.getID());
+	}
+	
+	public void legacyStartSession() throws PostCreationFailedException, NullPointerException, SQLException
 	{
 		int sessionStatus = 1;
 		while(sessionStatus > 0)
@@ -83,7 +96,7 @@ public class Session
 		this.startTime = LocalTime.now();
 	}
 	
-	private int userSession()
+	private int userSession() throws PostCreationFailedException, NullPointerException, SQLException
 	{
 		SessionMenu.printUserName(this.sessionUser.getUsername());
 		SessionMenu.printUserMenu();
@@ -101,16 +114,16 @@ public class Session
 		{
 			//TODO: hacer casos
 			case 1:
-				this.createPost();
+				this.legacyCreatePost();
 				return 1;
 			case 2:
-				this.readPost();
+				//this.readPost();
 				return 1;
 			case 3:
-				this.readPostAndRespond();
+				//this.createResponse();
 				return 1;
 			case 4:
-				this.seeUserPosts();
+				this.legacySeeUserPosts();
 				return 1;
 			case 5:
 				this.seeResponsesToUsersPosts();
@@ -130,38 +143,43 @@ public class Session
 		return -1;
 	}
 	
-	private int readPostAndRespond()
+	public void createResponse(UUID postID, String content) throws FailedResponseCreationException, InvalidPostContentLengthException
 	{
+		if(this.sessionUser == null || this.sessionUser.getID() == null || postID == null)
+		{
+			throw new FailedResponseCreationException();
+		}
+		if(!ResponseUtils.validResponseContentLength(content))
+		{
+			throw new InvalidPostContentLengthException();
+		}
 		try
 		{
-			UUID idToRead = this.ppDAO.getPostToReadAndRespond();
-			System.out.println(this.pDAO.searchById(idToRead));
-			System.out.println();
-			System.out.println("Write the title of the response:");
-			String title = this.sc.nextLine();
-			System.out.println("\nWrite the content of the response:");
-			String content = this.sc.nextLine();
-			this.rDAO.insert(new Response(idToRead,this.sessionUser.getID(),content, title));
-		} catch (EmptyPostPoolException e)
+			this.rDAO.insert(new Response(postID,this.sessionUser.getID(),content));
+		} catch (Exception e)
 		{
-			System.out.println("\n[E]: The post pool is empty\n");
+			throw new FailedResponseCreationException();
 		}
 		
-		return 1;
 	}
 	
-	private int readPost()
+	public Post getPostToRead() throws EmptyPostPoolException, FailedPostToReadFetchException
 	{
+		Post postToReturn = null;
 		try
 		{
-			System.out.println(this.pDAO.searchById(this.ppDAO.getPostToRead()));
-			System.out.println();
-		} catch (EmptyPostPoolException e)
+			postToReturn = this.pDAO.searchById(this.ppDAO.getPostToRead());
+		} 
+		catch (EmptyPostPoolException e)
 		{
-			System.out.println("\n[E]: The post pool is empty\n");
+			throw new EmptyPostPoolException();
+		}
+		catch(Exception e)
+		{
+			throw new FailedPostToReadFetchException();
 		}
 		
-		return 1;
+		return postToReturn;
 	}
 	
 	private int adminSession()
@@ -192,7 +210,7 @@ public class Session
 		return -1;
 	}
 	
-	private boolean createPost()
+	private boolean legacyCreatePost() throws PostCreationFailedException
 	{
 		String title = "";
 		String content = "";
@@ -225,7 +243,22 @@ public class Session
 		return (this.pDAO.insert(postToInsert) && this.ppDAO.insert(postToInsert));
 	}
 	
-	private void seeUserPosts()
+	public void createPost(String title, String content, int maxReadings, boolean wantsResponse) throws InvalidPostTitleLengthException, InvalidPostContentLengthException, PostCreationFailedException
+	{
+		if(!PostUtils.validTitleLength(title))
+		{
+			throw new InvalidPostTitleLengthException();
+		}
+		if(!PostUtils.validContentLength(content))
+		{
+			throw new InvalidPostContentLengthException();
+		}
+		Post postToInsert = new Post(this.sessionUser.getUserID(),title, content, maxReadings, this.sessionUser.getEmail(),wantsResponse);
+		this.pDAO.insert(postToInsert);
+		this.ppDAO.insert(postToInsert);	
+	}
+	
+	private void legacySeeUserPosts() throws NullPointerException, SQLException
 	{
 		int choice = -1;
 		List<Post> usersPosts = this.pDAO.listAll(this.sessionUser.getID());
@@ -249,7 +282,40 @@ public class Session
 		return;
 	}
 	
-	private void seeResponsesToUsersPosts()
+	public List<Post> seeUserPosts() throws FailedUserPostsFetchException
+	{
+		List<Post> userPosts = null;
+		try
+		{
+			userPosts = this.pDAO.listAll(this.sessionUser.getID());
+		}
+		catch(Exception e)
+		{
+			throw new FailedUserPostsFetchException();
+		}
+		return userPosts;
+	}
+	
+	public List<Response> seePostResponses(UUID postId) throws FailedPostReponsesFetchException
+	{
+		List<Response> postResponses = null;
+		try
+		{
+			postResponses = this.rDAO.listAllFromPost(postId);
+		}
+		catch(Exception e)
+		{
+			throw new FailedPostReponsesFetchException();
+		}
+		return postResponses;
+	}
+	
+	public Map<UUID, Integer> getResponsesFromPost()
+	{
+		return this.rDAO.getAllResponseCounts();
+	}
+	
+	private void seeResponsesToUsersPosts() throws NullPointerException, SQLException
 	{
 		int choice = -1;
 		List<Post> usersPosts = this.pDAO.listAll(this.sessionUser.getID());

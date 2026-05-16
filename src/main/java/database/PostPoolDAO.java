@@ -191,7 +191,7 @@ public class PostPoolDAO implements DAO<Post>
 	
 	public UUID getPostToRead() throws EmptyPostPoolException
 	{
-        String sql = "select * from posts_pool WHERE wants_response = 0 ORDER BY RAND() LIMIT 1;";
+        String sql = "select * from posts_pool ORDER BY RAND() LIMIT 1;";
 
         try (Connection conn = DatabaseConnection.getConexion(); 
              PreparedStatement pstmt = conn.prepareStatement(sql)) 
